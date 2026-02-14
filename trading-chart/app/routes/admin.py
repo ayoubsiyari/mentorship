@@ -332,13 +332,13 @@ async def import_users(
                 created_at=datetime.utcnow()
             )
             db.add(new_user)
+            db.commit()  # Commit each user individually to handle duplicates
             created += 1
             
         except Exception as e:
-            errors.append({"row": i, "error": str(e)})
+            db.rollback()  # Rollback failed insert
+            errors.append({"row": i, "email": email if 'email' in dir() else '', "error": str(e)[:100]})
             skipped += 1
-    
-    db.commit()
     
     return {
         "message": f"Import completed: {created} users created, {skipped} skipped",
