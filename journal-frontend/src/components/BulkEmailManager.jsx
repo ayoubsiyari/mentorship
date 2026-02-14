@@ -801,9 +801,11 @@ const BulkEmailManager = ({ users = [] }) => {
     if (activeFilter === 'journal') {
       matchesFilter = user.has_journal_access === true;
     } else if (activeFilter === 'no-journal') {
-      matchesFilter = user.has_journal_access !== true;
+      matchesFilter = user.has_journal_access !== true && user.user_source !== 'talaria-prop';
     } else if (activeFilter === 'mentorship') {
       matchesFilter = bootcampEmails.includes(user.email?.toLowerCase());
+    } else if (activeFilter === 'talaria-prop') {
+      matchesFilter = user.user_source === 'talaria-prop';
     }
     
     return matchesSearch && notSent && matchesFilter;
@@ -966,7 +968,7 @@ const BulkEmailManager = ({ users = [] }) => {
           <button
             onClick={() => {
               setActiveFilter('no-journal');
-              const mentorshipEmails = users.filter(u => !u.has_journal_access && (hideSentUsers ? !sentEmails.includes(u.email) : true)).map(u => u.email);
+              const mentorshipEmails = users.filter(u => !u.has_journal_access && u.user_source !== 'talaria-prop' && (hideSentUsers ? !sentEmails.includes(u.email) : true)).map(u => u.email);
               setSelectedEmails(mentorshipEmails);
             }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -975,7 +977,7 @@ const BulkEmailManager = ({ users = [] }) => {
                 : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/30'
             }`}
           >
-            No Journal ({users.filter(u => !u.has_journal_access).length})
+            No Journal ({users.filter(u => !u.has_journal_access && u.user_source !== 'talaria-prop').length})
           </button>
           <button
             onClick={() => {
@@ -993,6 +995,23 @@ const BulkEmailManager = ({ users = [] }) => {
             }`}
           >
             Mentorship Applicants ({users.filter(u => bootcampEmails.includes(u.email?.toLowerCase())).length})
+          </button>
+          <button
+            onClick={() => {
+              setActiveFilter('talaria-prop');
+              const talariaEmails = users.filter(u => 
+                u.user_source === 'talaria-prop' && 
+                (hideSentUsers ? !sentEmails.includes(u.email) : true)
+              ).map(u => u.email);
+              setSelectedEmails(talariaEmails);
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeFilter === 'talaria-prop'
+                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20'
+                : 'bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/30'
+            }`}
+          >
+            Talaria-prop ({users.filter(u => u.user_source === 'talaria-prop').length})
           </button>
           <button
             onClick={() => {
