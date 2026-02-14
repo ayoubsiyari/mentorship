@@ -1790,6 +1790,14 @@ export default function Settings() {
                       >
                         Mentorship Applicant ({users.filter(u => bootcampEmails.includes(u.email?.toLowerCase())).length})
                       </button>
+                      <button
+                        onClick={() => setUserTypeFilter('talaria-prop')}
+                        className={`flex-1 px-2 py-2 rounded text-xs transition-all ${
+                          userTypeFilter === 'talaria-prop' ? 'bg-[#1e3a5f] text-white' : 'text-gray-500 hover:text-white'
+                        }`}
+                      >
+                        Talaria-prop ({users.filter(u => u.user_source === 'talaria-prop').length})
+                      </button>
                     </div>
 
                     {/* Users List */}
@@ -1809,6 +1817,7 @@ export default function Settings() {
                             if (userTypeFilter === 'journal') return user.has_journal_access;
                             if (userTypeFilter === 'no-journal') return !user.has_journal_access;
                             if (userTypeFilter === 'mentorship') return bootcampEmails.includes(user.email?.toLowerCase());
+                            if (userTypeFilter === 'talaria-prop') return user.user_source === 'talaria-prop';
                             return true;
                           })
                           .map(user => (

@@ -1,10 +1,13 @@
+import csv
+import io
 import smtplib
 import uuid
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate, make_msgid
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,6 +17,7 @@ from ..deps import require_admin
 from ..models import User
 from ..schemas import UserPublic
 from ..settings import settings
+from ..security import hash_password
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -196,4 +200,166 @@ def send_journal_email_all(
         "total_users": len(users),
         "sent": sent_count,
         "errors": errors
+    }
+
+
+@router.post("/import-users")
+async def import_users(
+    file: UploadFile = File(...),
+    user_source: str = Form(default="talaria-prop"),
+    has_journal_access: bool = Form(default=False),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Import users from CSV/XLS file.
+    
+    Required columns: first_name, last_name, email
+    Optional columns: phone, country, password
+    
+    If password is not provided, a random one will be generated.
+    If password looks like a hash (starts with 'scrypt:' or 'pbkdf2:'), it will be used as-is.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    
+    # Read file content
+    content = await file.read()
+    
+    # Determine file type and parse
+    filename_lower = file.filename.lower()
+    rows = []
+    
+    if filename_lower.endswith('.csv'):
+        # Parse CSV
+        text_content = content.decode('utf-8-sig')  # Handle BOM
+        reader = csv.DictReader(io.StringIO(text_content))
+        rows = list(reader)
+    elif filename_lower.endswith(('.xls', '.xlsx')):
+        # Parse Excel - need openpyxl
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(io.BytesIO(content))
+            ws = wb.active
+            
+            # Get headers from first row
+            headers = [cell.value for cell in ws[1] if cell.value]
+            headers = [h.lower().strip().replace(' ', '_') for h in headers]
+            
+            # Parse rows
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if not any(row):  # Skip empty rows
+                    continue
+                row_dict = {}
+                for i, value in enumerate(row):
+                    if i < len(headers):
+                        row_dict[headers[i]] = value
+                rows.append(row_dict)
+        except ImportError:
+            raise HTTPException(status_code=400, detail="Excel support not available. Please upload CSV.")
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file format. Use CSV or XLSX.")
+    
+    if not rows:
+        raise HTTPException(status_code=400, detail="No data found in file")
+    
+    # Normalize column names
+    normalized_rows = []
+    for row in rows:
+        normalized = {}
+        for key, value in row.items():
+            if key:
+                normalized_key = str(key).lower().strip().replace(' ', '_')
+                normalized[normalized_key] = value
+        normalized_rows.append(normalized)
+    rows = normalized_rows
+    
+    # Process each row
+    created = 0
+    skipped = 0
+    errors = []
+    
+    for i, row in enumerate(rows, start=2):  # Start at 2 (row 1 is header)
+        try:
+            # Get required fields
+            first_name = str(row.get('first_name', '') or '').strip()
+            last_name = str(row.get('last_name', '') or '').strip()
+            email = str(row.get('email', '') or '').strip().lower()
+            
+            if not email or '@' not in email:
+                errors.append({"row": i, "error": "Invalid or missing email"})
+                skipped += 1
+                continue
+            
+            # Check if user already exists
+            existing = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+            if existing:
+                errors.append({"row": i, "email": email, "error": "User already exists"})
+                skipped += 1
+                continue
+            
+            # Get optional fields
+            phone = str(row.get('phone', '') or '').strip() or None
+            country = str(row.get('country', '') or '').strip() or None
+            password_raw = str(row.get('password', '') or '').strip()
+            
+            # Handle password
+            if password_raw and (password_raw.startswith('scrypt:') or password_raw.startswith('pbkdf2:')):
+                # Already hashed
+                password_hash = password_raw
+            elif password_raw:
+                # Plain text password - hash it
+                password_hash = hash_password(password_raw)
+            else:
+                # Generate random password
+                random_pass = str(uuid.uuid4())[:12]
+                password_hash = hash_password(random_pass)
+            
+            # Create user
+            name = f"{first_name} {last_name}".strip() or email.split('@')[0]
+            
+            new_user = User(
+                name=name,
+                email=email,
+                password_hash=password_hash,
+                phone=phone,
+                country=country,
+                role="user",
+                is_active=True,
+                has_journal_access=has_journal_access,
+                email_verified=True,  # Mark as verified since admin is importing
+                user_source=user_source,
+                created_at=datetime.utcnow()
+            )
+            db.add(new_user)
+            created += 1
+            
+        except Exception as e:
+            errors.append({"row": i, "error": str(e)})
+            skipped += 1
+    
+    db.commit()
+    
+    return {
+        "message": f"Import completed: {created} users created, {skipped} skipped",
+        "created": created,
+        "skipped": skipped,
+        "total_rows": len(rows),
+        "errors": errors[:20]  # Limit errors to first 20
+    }
+
+
+@router.get("/users/by-source/{source}")
+def get_users_by_source(
+    source: str,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all users from a specific source (e.g., talaria-prop)."""
+    users = db.execute(
+        select(User).where(User.user_source == source).order_by(User.created_at.desc())
+    ).scalars().all()
+    return {
+        "users": [UserPublic.model_validate(u, from_attributes=True) for u in users],
+        "count": len(users)
     }

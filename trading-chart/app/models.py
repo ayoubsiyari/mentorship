@@ -30,6 +30,7 @@ class User(Base):
     verification_code_expires: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     reset_code: Mapped[str | None] = mapped_column(String(6), nullable=True)
     reset_code_expires: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    user_source: Mapped[str | None] = mapped_column(String(50), nullable=True)  # 'talaria-prop', 'organic', etc.
 
     sessions: Mapped[list[TradingSession]] = relationship(back_populates="user", cascade="all, delete-orphan")
     journal_profiles: Mapped[list[JournalProfile]] = relationship(back_populates="user", cascade="all, delete-orphan")

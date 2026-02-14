@@ -15,6 +15,8 @@ class UserPublic(BaseModel):
     phone: str | None = None
     country: str | None = None
     email_verified: bool = False
+    has_journal_access: bool = False
+    user_source: str | None = None
 
 
 class VerifyEmailIn(BaseModel):
