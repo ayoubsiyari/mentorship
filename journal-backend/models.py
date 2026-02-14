@@ -77,6 +77,7 @@ class User(db.Model):
     birth_date = db.Column(db.Date, nullable=True)
     reset_token = db.Column(db.String(100), nullable=True)
     reset_token_expires = db.Column(db.DateTime, nullable=True)
+    user_source = db.Column(db.String(50), nullable=True)  # 'talaria-prop', 'organic', etc.
     
     # Alias for compatibility with journal backend auth
     @property
