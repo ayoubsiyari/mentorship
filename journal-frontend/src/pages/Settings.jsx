@@ -1787,7 +1787,7 @@ export default function Settings() {
                           userTypeFilter === 'no-journal' ? 'bg-[#1e3a5f] text-white' : 'text-gray-500 hover:text-white'
                         }`}
                       >
-                        No Journal ({users.filter(u => !u.has_journal_access).length})
+                        No Journal ({users.filter(u => !u.has_journal_access && u.user_source !== 'talaria-prop').length})
                       </button>
                       <button
                         onClick={() => setUserTypeFilter('mentorship')}
@@ -1822,7 +1822,7 @@ export default function Settings() {
                         {users
                           .filter(user => {
                             if (userTypeFilter === 'journal') return user.has_journal_access;
-                            if (userTypeFilter === 'no-journal') return !user.has_journal_access;
+                            if (userTypeFilter === 'no-journal') return !user.has_journal_access && user.user_source !== 'talaria-prop';
                             if (userTypeFilter === 'mentorship') return bootcampEmails.includes(user.email?.toLowerCase());
                             if (userTypeFilter === 'talaria-prop') return user.user_source === 'talaria-prop';
                             return true;
