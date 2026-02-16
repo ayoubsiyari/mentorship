@@ -361,6 +361,13 @@ def forgot_password():
             "error": "البريد الإلكتروني غير مُفعّل. يرجى تفعيل بريدك الإلكتروني أولاً أو التواصل مع الدعم."
         }), 400
 
+    # Check if user has journal access
+    if not user.has_journal_access:
+        current_app.logger.warning(f"Password reset requested for user without journal access: {email}")
+        return jsonify({
+            "error": "ليس لديك صلاحية الوصول إلى Journal. يرجى التواصل مع الدعم إذا كنت تعتقد أن هذا خطأ."
+        }), 403
+
     # Generate 6-digit reset code
     reset_code = user.generate_verification_token()
     db.session.commit()
