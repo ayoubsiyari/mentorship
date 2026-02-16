@@ -13,7 +13,7 @@ export default function TermsPage() {
       ar: {
             backHome: "العودة للرئيسية",
             title: "شروط الخدمة",
-            updated: "آخر تحديث: يناير 2024",
+            updated: "آخر تحديث: يناير 2026",
             sections: {
               s1t: "1. قبول الشروط",
               s1p:
@@ -53,12 +53,12 @@ export default function TermsPage() {
               s9t: "9. تواصل معنا",
               s9p: "للاستفسارات حول شروط الخدمة، تواصل معنا على:",
             },
-            footer: "© 2024 Talaria Log Trading Platform. جميع الحقوق محفوظة.",
+            footer: "© 2026 Talaria Log Trading Platform. جميع الحقوق محفوظة.",
           },
       en: {
             backHome: "Back Home",
             title: "Terms of Service",
-            updated: "Last updated: January 2024",
+            updated: "Last updated: January 2026",
             sections: {
               s1t: "1. Acceptance of Terms",
               s1p:
@@ -99,7 +99,7 @@ export default function TermsPage() {
               s9p:
                 "For questions about these Terms of Service, contact us at:",
             },
-            footer: "© 2024 Talaria Log Trading Platform. All rights reserved.",
+            footer: "© 2026 Talaria Log Trading Platform. All rights reserved.",
           },
     }),
     []
@@ -171,7 +171,7 @@ export default function TermsPage() {
           <h2 className="text-2xl font-semibold text-white mb-4">{t.sections.s9t}</h2>
           <p className="text-neutral-300 leading-relaxed">{t.sections.s9p}</p>
           <p className="text-blue-400 mt-2">
-            <a href="mailto:support@talaria-log.com">support@talaria-log.com</a>
+            <a href="mailto:support-center@talaria-log.com">support-center@talaria-log.com</a>
           </p>
         </section>
       </div>
