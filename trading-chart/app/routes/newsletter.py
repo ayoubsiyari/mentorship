@@ -403,11 +403,12 @@ def _send_newsletter_email(
                         
                         <!-- HEADER - FIXED -->
                         <tr>
-                            <td style="background: linear-gradient(135deg, #1e3a5f 0%, #0a1628 100%); padding: 30px; text-align: center;">
-                                <img src="https://talaria-log.com/logo-04.png" alt="Talaria" style="height: 50px; margin-bottom: 20px;">
-                                <div style="background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); border-radius: 12px; padding: 30px 20px;">
-                                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Talaria Newsletter</h1>
-                                    <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0; font-size: 14px;">أحدث التحليلات والرؤى من فريق Talaria</p>
+                            <td style="background-color: #ffffff; padding: 30px; text-align: center;">
+                                <img src="https://talaria-log.com/LOGO-09.png" alt="Talaria" style="height: 50px; margin-bottom: 20px;">
+                                <div style="background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); border-radius: 12px;">
+                                    
+                                    <img src="https://talaria-log.com/logo-07.jpg" alt="Talaria" style="height: 50px; margin-bottom: 20px;">
+                                
                                 </div>
                             </td>
                         </tr>
