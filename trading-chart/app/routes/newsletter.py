@@ -444,7 +444,7 @@ def _send_newsletter_email(
                         <!-- CTA BUTTON -->
                         <tr>
                             <td style="padding: 0 40px 40px; text-align: center;">
-                                <a href="https://journal.talaria-log.com" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                                <a href="https://talaria-log.com" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 600; font-size: 14px;">
                                     تداول الآن
                                 </a>
                             </td>
