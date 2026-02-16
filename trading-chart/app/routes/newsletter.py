@@ -440,6 +440,35 @@ def _send_newsletter_email(
                             </td>
                         </tr>
                         
+                        <!-- CONTACT SECTION - FIXED -->
+                        <tr>
+                            <td style="padding: 40px; background-color: #ffffff; text-align: center;">
+                                <p style="color: #000000; font-size: 18px; margin: 0 0 25px; font-weight: 600;">هل لديك سؤال؟ تواصل معنا</p>
+                                <table role="presentation" align="center" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td style="padding: 0 15px; text-align: center;">
+                                            <a href="https://talaria-log.com" style="color: #60a5fa; text-decoration: none; font-size: 13px;">
+                                                <img src="https://talaria-log.com/Icons-26.png?v=1" alt="Website" style="width: 50px; height: 50px; margin: 0 auto 8px; display: block;">
+                                                الموقع
+                                            </a>
+                                        </td>
+                                        <td style="padding: 0 15px; text-align: center;">
+                                            <a href="mailto:support-center@talaria-log.com" style="color: #60a5fa; text-decoration: none; font-size: 13px;">
+                                                <img src="https://talaria-log.com/Icons-27.png?v=1" alt="Email" style="width: 50px; height: 50px; margin: 0 auto 8px; display: block;">
+                                                البريد
+                                            </a>
+                                        </td>
+                                        <td style="padding: 0 15px; text-align: center;">
+                                            <a href="https://talaria-log.com/journal" style="color: #60a5fa; text-decoration: none; font-size: 13px;">
+                                                <img src="https://talaria-log.com/Icons-55.png?v=1" alt="Platform" style="width: 50px; height: 50px; margin: 0 auto 8px; display: block;">
+                                                المنصة
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
                         <!-- DISCLAIMER -->
                         <tr>
                             <td style="padding: 30px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb;">
@@ -449,34 +478,7 @@ def _send_newsletter_email(
                             </td>
                         </tr>
                         
-                        <!-- CONTACT SECTION - FIXED -->
-                        <tr>
-                            <td style="padding: 40px; background-color: #1e3a5f; text-align: center;">
-                                <p style="color: #ffffff; font-size: 18px; margin: 0 0 25px; font-weight: 600;">هل لديك سؤال؟ تواصل معنا</p>
-                                <table role="presentation" align="center" cellspacing="0" cellpadding="0">
-                                    <tr>
-                                        <td style="padding: 0 15px; text-align: center;">
-                                            <a href="https://talaria-log.com" style="color: #60a5fa; text-decoration: none; font-size: 13px;">
-                                                <div style="width: 50px; height: 50px; background-color: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 8px; line-height: 50px;">🌐</div>
-                                                الموقع
-                                            </a>
-                                        </td>
-                                        <td style="padding: 0 15px; text-align: center;">
-                                            <a href="mailto:support-center@talaria-log.com" style="color: #60a5fa; text-decoration: none; font-size: 13px;">
-                                                <div style="width: 50px; height: 50px; background-color: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 8px; line-height: 50px;">✉️</div>
-                                                البريد
-                                            </a>
-                                        </td>
-                                        <td style="padding: 0 15px; text-align: center;">
-                                            <a href="https://journal.talaria-log.com" style="color: #60a5fa; text-decoration: none; font-size: 13px;">
-                                                <div style="width: 50px; height: 50px; background-color: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 8px; line-height: 50px;">📊</div>
-                                                المنصة
-                                            </a>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
+                        
                         
                         <!-- FOOTER - FIXED -->
                         <tr>
