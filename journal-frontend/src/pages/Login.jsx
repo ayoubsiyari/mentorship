@@ -212,7 +212,7 @@ export default function Login() {
         setForgotMsg(texts.codeSent);
         setForgotSuccess(true);
       } else {
-        setForgotMsg(data.detail || 'Failed to send reset code');
+        setForgotMsg(data.error || data.detail || 'Failed to send reset code');
         setForgotSuccess(false);
       }
     } catch (err) {
