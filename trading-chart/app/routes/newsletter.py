@@ -403,8 +403,17 @@ def _send_newsletter_email(
                         
                         <!-- HEADER - FIXED -->
                         <tr>
-                            <td style="background-color: #ffffff; padding: 30px 30px 0; text-align: center;">
-                                <img src="https://talaria-log.com/LOGO-09.png" alt="Talaria" style="height: 50px; margin-bottom: 20px;">
+                            <td style="background-color: #ffffff; padding: 20px 30px 0;">
+                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td style="text-align: left;">
+                                            <img src="https://talaria-log.com/LOGO-09.png" alt="Talaria" style="height: 45px;">
+                                        </td>
+                                        <td style="text-align: right;">
+                                            <a href="https://journal.talaria-log.com" style="color: #1f2937; text-decoration: underline; font-size: 14px;">Login</a>
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                         <tr>
