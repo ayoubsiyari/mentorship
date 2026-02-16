@@ -342,12 +342,12 @@ def update_profile(payload: UpdateProfileIn, db: Session = Depends(get_db), user
 def forgot_password(payload: ForgotPasswordIn, db: Session = Depends(get_db)):
     user = db.execute(select(User).where(User.email == payload.email.lower())).scalar_one_or_none()
     
-    # Always return success to prevent email enumeration
+    # Return error if user doesn't exist to prevent sending to invalid emails
     if not user:
-        return {"message": "If an account exists, a reset code has been sent"}
+        raise HTTPException(status_code=404, detail="هذا البريد الإلكتروني غير مسجل. يرجى إنشاء حساب جديد.")
     
     if not user.email_verified:
-        return {"message": "If an account exists, a reset code has been sent"}
+        raise HTTPException(status_code=400, detail="البريد الإلكتروني غير مُفعّل. يرجى تفعيل بريدك الإلكتروني أولاً.")
     
     code = generate_verification_code()
     user.reset_code = code
