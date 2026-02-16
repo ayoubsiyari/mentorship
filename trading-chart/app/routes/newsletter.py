@@ -409,7 +409,7 @@ def _send_newsletter_email(
                         </tr>
                         <tr>
                             <td style="padding: 0;">
-                                <img src="https://talaria-log.com/logo-07.jpg" alt="Talaria Newsletter" style="width: 100%; height: auto; display: block; border-radius: 0;">
+                                <img src="https://talaria-log.com/logo-07.jpg?v=2" alt="Talaria Newsletter" style="width: 100%; height: auto; display: block; border-radius: 0;">
                             </td>
                         </tr>
                         
