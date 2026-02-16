@@ -1813,6 +1813,18 @@ export default function Settings() {
                       >
                         Hermes ({users.filter(u => u.user_source === 'hermes-website').length})
                       </button>
+                      <button
+                        onClick={() => setUserTypeFilter('duplicates')}
+                        className={`flex-1 px-2 py-2 rounded text-xs transition-all ${
+                          userTypeFilter === 'duplicates' ? 'bg-red-600 text-white' : 'text-red-400 hover:text-red-300'
+                        }`}
+                      >
+                        Duplicates ({(() => {
+                          const emailCounts = {};
+                          users.forEach(u => { emailCounts[u.email?.toLowerCase()] = (emailCounts[u.email?.toLowerCase()] || 0) + 1; });
+                          return users.filter(u => emailCounts[u.email?.toLowerCase()] > 1).length;
+                        })()})
+                      </button>
                     </div>
 
                     {/* Users List */}
@@ -1834,6 +1846,11 @@ export default function Settings() {
                             if (userTypeFilter === 'mentorship') return bootcampEmails.includes(user.email?.toLowerCase());
                             if (userTypeFilter === 'talaria-prop') return user.user_source === 'talaria-prop';
                             if (userTypeFilter === 'hermes-website') return user.user_source === 'hermes-website';
+                            if (userTypeFilter === 'duplicates') {
+                              const emailCounts = {};
+                              users.forEach(u => { emailCounts[u.email?.toLowerCase()] = (emailCounts[u.email?.toLowerCase()] || 0) + 1; });
+                              return emailCounts[user.email?.toLowerCase()] > 1;
+                            }
                             return true;
                           })
                           .map(user => (
