@@ -15,7 +15,7 @@ from app.models import NewsletterSubscriber, User
 from app.email_validator import validate_email
 from app.settings import settings
 
-router = APIRouter(prefix="/newsletter", tags=["newsletter"])
+router = APIRouter(prefix="/api/newsletter", tags=["newsletter"])
 
 
 class SubscribeRequest(BaseModel):
