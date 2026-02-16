@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from .db import SessionLocal, engine
 from .models import Base, User
-from .routes import admin, auth, bootcamp, chart_pages, monitoring, sessions
+from .routes import admin, auth, bootcamp, chart_pages, monitoring, newsletter, sessions
 from .security import hash_password
 from .settings import settings
 
@@ -30,6 +30,7 @@ def create_app() -> FastAPI:
     app.include_router(bootcamp.router)
     app.include_router(chart_pages.router)
     app.include_router(monitoring.router)
+    app.include_router(newsletter.router)
 
     @app.on_event("startup")
     def _startup():

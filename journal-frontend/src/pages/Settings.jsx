@@ -65,6 +65,7 @@ import {
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, Legend as ReLegend } from 'recharts';
 import BulkUserImport from '../components/BulkUserImport';
 import BulkEmailManager from '../components/BulkEmailManager';
+import NewsletterManager from '../components/NewsletterManager';
 
 export default function Settings() {
   const [email, setEmail] = useState('');
@@ -1370,6 +1371,7 @@ export default function Settings() {
                   { id: 'geography', label: 'Geography' },
                   { id: 'feature-flags', label: 'Features' },
                   { id: 'bulk-email', label: 'Email' },
+                  { id: 'newsletter', label: 'Newsletter' },
                   { id: 'settings', label: 'Settings' }
                 ].map(tab => {
                   const isActive = activeAdminTab === tab.id;
@@ -1390,7 +1392,7 @@ export default function Settings() {
               </div>
 
               {/* Tab Content */}
-              <div className={activeAdminTab === 'bulk-email' ? 'p-0' : 'p-6'}>
+              <div className={activeAdminTab === 'bulk-email' || activeAdminTab === 'newsletter' ? 'p-0' : 'p-6'}>
                 {/* Dashboard Tab */}
                 {activeAdminTab === 'dashboard' && (
                   <div className="space-y-6">
@@ -2875,6 +2877,11 @@ export default function Settings() {
                 {/* Bulk Email Tab */}
                 {activeAdminTab === 'bulk-email' && (
                   <BulkEmailManager users={users} />
+                )}
+
+                {/* Newsletter Tab */}
+                {activeAdminTab === 'newsletter' && (
+                  <NewsletterManager />
                 )}
 
                 {/* Settings Tab */}

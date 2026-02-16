@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLanguage } from "@/app/LanguageProvider";
 import { BilingualDisclosures } from "@/components/BilingualDisclosures";
+import NewsletterSubscribe from "@/components/NewsletterSubscribe";
 
 type Disclosures = {
   riskTitle: string;
@@ -127,7 +128,7 @@ export default function SiteDisclosuresFooter({
 
       <footer dir={isArabic ? "rtl" : "ltr"} className="border-t border-blue-500/10 py-8 px-6 bg-[#030014]">
         <div className={`max-w-7xl mx-auto ${isArabic ? "text-right" : "text-left"}`}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             <div className="md:col-span-1">
               <Link
                 href="/"
@@ -201,6 +202,10 @@ export default function SiteDisclosuresFooter({
               >
                 support-center@talaria-log.com
               </a>
+            </div>
+
+            <div>
+              <NewsletterSubscribe />
             </div>
           </div>
 

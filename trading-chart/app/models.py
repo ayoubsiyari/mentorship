@@ -254,3 +254,16 @@ class FeatureFlag(Base):
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class NewsletterSubscriber(Base):
+    __tablename__ = "newsletter_subscribers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    subscribed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    unsubscribed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    unsubscribe_token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    source: Mapped[str | None] = mapped_column(String(50), nullable=True)  # 'homepage', 'bootcamp', etc.
