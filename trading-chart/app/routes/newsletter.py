@@ -94,36 +94,148 @@ def subscribe_newsletter(
     )
 
 
-@router.get("/unsubscribe/{token}", response_model=UnsubscribeResponse)
+@router.get("/unsubscribe/{token}")
 def unsubscribe_newsletter(
     token: str,
     db: Session = Depends(get_db)
 ):
     """Unsubscribe from the newsletter using the unique token."""
+    from fastapi.responses import HTMLResponse
+    
     subscriber = db.execute(
         select(NewsletterSubscriber).where(NewsletterSubscriber.unsubscribe_token == token)
     ).scalar_one_or_none()
     
     if not subscriber:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="رابط إلغاء الاشتراك غير صالح"  # Invalid unsubscribe link
-        )
+        return HTMLResponse(content=_get_unsubscribe_page(
+            success=False,
+            message="رابط إلغاء الاشتراك غير صالح",
+            message_en="Invalid unsubscribe link"
+        ), status_code=404)
     
     if not subscriber.is_active:
-        return UnsubscribeResponse(
+        return HTMLResponse(content=_get_unsubscribe_page(
             success=True,
-            message="تم إلغاء اشتراكك مسبقاً"  # Already unsubscribed
-        )
+            message="تم إلغاء اشتراكك مسبقاً",
+            message_en="You have already unsubscribed"
+        ))
     
     subscriber.is_active = False
     subscriber.unsubscribed_at = datetime.utcnow()
     db.commit()
     
-    return UnsubscribeResponse(
+    return HTMLResponse(content=_get_unsubscribe_page(
         success=True,
-        message="تم إلغاء اشتراكك بنجاح من النشرة الإخبارية"  # Successfully unsubscribed
-    )
+        message="تم إلغاء اشتراكك بنجاح من النشرة الإخبارية",
+        message_en="You have been successfully unsubscribed"
+    ))
+
+
+def _get_unsubscribe_page(success: bool, message: str, message_en: str) -> str:
+    """Generate HTML page for unsubscribe result."""
+    icon = "✅" if success else "❌"
+    bg_color = "#10b981" if success else "#ef4444"
+    
+    return f"""
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Talaria Newsletter - إلغاء الاشتراك</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{
+                font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif;
+                background: linear-gradient(135deg, #030014 0%, #0a0a1a 50%, #1a1a2e 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }}
+            .container {{
+                max-width: 500px;
+                width: 100%;
+                background: rgba(15, 15, 35, 0.95);
+                border-radius: 24px;
+                padding: 48px 32px;
+                text-align: center;
+                border: 1px solid rgba(99, 102, 241, 0.2);
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            }}
+            .icon {{
+                width: 80px;
+                height: 80px;
+                background: {bg_color};
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 24px;
+                font-size: 40px;
+            }}
+            .title {{
+                color: #ffffff;
+                font-size: 24px;
+                font-weight: 700;
+                margin-bottom: 16px;
+            }}
+            .message {{
+                color: #c7d2fe;
+                font-size: 18px;
+                line-height: 1.6;
+                margin-bottom: 12px;
+            }}
+            .message-en {{
+                color: #9ca3af;
+                font-size: 14px;
+                margin-bottom: 32px;
+            }}
+            .logo {{
+                margin-bottom: 32px;
+            }}
+            .logo img {{
+                height: 60px;
+                width: auto;
+            }}
+            .home-link {{
+                display: inline-block;
+                padding: 14px 32px;
+                background: linear-gradient(135deg, #3b82f6, #6366f1);
+                color: white;
+                text-decoration: none;
+                border-radius: 12px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+            }}
+            .home-link:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+            }}
+            .thanks {{
+                color: #6b7280;
+                font-size: 13px;
+                margin-top: 32px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="logo">
+                <img src="https://talaria-log.com/logo-04.png" alt="Talaria">
+            </div>
+            <div class="icon">{icon}</div>
+            <h1 class="title">النشرة الإخبارية</h1>
+            <p class="message">{message}</p>
+            <p class="message-en">{message_en}</p>
+            <a href="https://talaria-log.com" class="home-link">العودة للموقع الرئيسي</a>
+            <p class="thanks">شكراً لكونك جزءاً من مجتمع Talaria 💜</p>
+        </div>
+    </body>
+    </html>
+    """
 
 
 # ==================== ADMIN ENDPOINTS ====================
