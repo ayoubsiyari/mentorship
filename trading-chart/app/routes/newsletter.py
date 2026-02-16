@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.deps import require_admin
 from app.models import NewsletterSubscriber, User
-from app.email_validator import validate_email_comprehensive
+from app.email_validator import validate_email
 from app.settings import settings
 
 router = APIRouter(prefix="/newsletter", tags=["newsletter"])
@@ -43,16 +43,16 @@ def subscribe_newsletter(
     email = data.email.lower().strip()
     
     # Validate email
-    validation = validate_email_comprehensive(email)
-    if not validation["is_valid"]:
+    is_valid, message, corrected = validate_email(email, check_api=False)
+    if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=validation.get("error", "البريد الإلكتروني غير صالح")
+            detail=message or "البريد الإلكتروني غير صالح"
         )
     
     # Use corrected email if available
-    if validation.get("corrected_email"):
-        email = validation["corrected_email"]
+    if corrected:
+        email = corrected
     
     # Check if already subscribed
     existing = db.execute(
