@@ -6,8 +6,8 @@ import UnderlineExtension from '@tiptap/extension-underline';
 import LinkExtension from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import ImageExtension from '@tiptap/extension-image';
-import Color from '@tiptap/extension-color';
-import TextStyle from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import { TextStyle } from '@tiptap/extension-text-style';
 
 const MenuBar = ({ editor }) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
