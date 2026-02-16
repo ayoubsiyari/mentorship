@@ -801,11 +801,13 @@ const BulkEmailManager = ({ users = [] }) => {
     if (activeFilter === 'journal') {
       matchesFilter = user.has_journal_access === true;
     } else if (activeFilter === 'no-journal') {
-      matchesFilter = user.has_journal_access !== true && user.user_source !== 'talaria-prop';
+      matchesFilter = user.has_journal_access !== true && user.user_source !== 'talaria-prop' && user.user_source !== 'hermes-website';
     } else if (activeFilter === 'mentorship') {
       matchesFilter = bootcampEmails.includes(user.email?.toLowerCase());
     } else if (activeFilter === 'talaria-prop') {
       matchesFilter = user.user_source === 'talaria-prop';
+    } else if (activeFilter === 'hermes-website') {
+      matchesFilter = user.user_source === 'hermes-website';
     }
     
     return matchesSearch && notSent && matchesFilter;
@@ -968,7 +970,7 @@ const BulkEmailManager = ({ users = [] }) => {
           <button
             onClick={() => {
               setActiveFilter('no-journal');
-              const mentorshipEmails = users.filter(u => !u.has_journal_access && u.user_source !== 'talaria-prop' && (hideSentUsers ? !sentEmails.includes(u.email) : true)).map(u => u.email);
+              const mentorshipEmails = users.filter(u => !u.has_journal_access && u.user_source !== 'talaria-prop' && u.user_source !== 'hermes-website' && (hideSentUsers ? !sentEmails.includes(u.email) : true)).map(u => u.email);
               setSelectedEmails(mentorshipEmails);
             }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -977,7 +979,7 @@ const BulkEmailManager = ({ users = [] }) => {
                 : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/30'
             }`}
           >
-            No Journal ({users.filter(u => !u.has_journal_access && u.user_source !== 'talaria-prop').length})
+            No Journal ({users.filter(u => !u.has_journal_access && u.user_source !== 'talaria-prop' && u.user_source !== 'hermes-website').length})
           </button>
           <button
             onClick={() => {
@@ -1012,6 +1014,23 @@ const BulkEmailManager = ({ users = [] }) => {
             }`}
           >
             Talaria-prop ({users.filter(u => u.user_source === 'talaria-prop').length})
+          </button>
+          <button
+            onClick={() => {
+              setActiveFilter('hermes-website');
+              const hermesEmails = users.filter(u => 
+                u.user_source === 'hermes-website' && 
+                (hideSentUsers ? !sentEmails.includes(u.email) : true)
+              ).map(u => u.email);
+              setSelectedEmails(hermesEmails);
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeFilter === 'hermes-website'
+                ? 'bg-pink-600 text-white shadow-lg shadow-pink-500/20'
+                : 'bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 border border-pink-500/30'
+            }`}
+          >
+            Hermes ({users.filter(u => u.user_source === 'hermes-website').length})
           </button>
           <button
             onClick={() => {

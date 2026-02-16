@@ -1787,7 +1787,7 @@ export default function Settings() {
                           userTypeFilter === 'no-journal' ? 'bg-[#1e3a5f] text-white' : 'text-gray-500 hover:text-white'
                         }`}
                       >
-                        No Journal ({users.filter(u => !u.has_journal_access && u.user_source !== 'talaria-prop').length})
+                        No Journal ({users.filter(u => !u.has_journal_access && u.user_source !== 'talaria-prop' && u.user_source !== 'hermes-website').length})
                       </button>
                       <button
                         onClick={() => setUserTypeFilter('mentorship')}
@@ -1804,6 +1804,14 @@ export default function Settings() {
                         }`}
                       >
                         Talaria-prop ({users.filter(u => u.user_source === 'talaria-prop').length})
+                      </button>
+                      <button
+                        onClick={() => setUserTypeFilter('hermes-website')}
+                        className={`flex-1 px-2 py-2 rounded text-xs transition-all ${
+                          userTypeFilter === 'hermes-website' ? 'bg-[#1e3a5f] text-white' : 'text-gray-500 hover:text-white'
+                        }`}
+                      >
+                        Hermes ({users.filter(u => u.user_source === 'hermes-website').length})
                       </button>
                     </div>
 
@@ -1822,9 +1830,10 @@ export default function Settings() {
                         {users
                           .filter(user => {
                             if (userTypeFilter === 'journal') return user.has_journal_access;
-                            if (userTypeFilter === 'no-journal') return !user.has_journal_access && user.user_source !== 'talaria-prop';
+                            if (userTypeFilter === 'no-journal') return !user.has_journal_access && user.user_source !== 'talaria-prop' && user.user_source !== 'hermes-website';
                             if (userTypeFilter === 'mentorship') return bootcampEmails.includes(user.email?.toLowerCase());
                             if (userTypeFilter === 'talaria-prop') return user.user_source === 'talaria-prop';
+                            if (userTypeFilter === 'hermes-website') return user.user_source === 'hermes-website';
                             return true;
                           })
                           .map(user => (
