@@ -281,9 +281,16 @@ async def import_users(
     
     for i, row in enumerate(rows, start=2):  # Start at 2 (row 1 is header)
         try:
-            # Get required fields
+            # Get required fields - support both 'name' column or 'first_name'/'last_name'
+            name_col = str(row.get('name', '') or '').strip()
             first_name = str(row.get('first_name', '') or '').strip()
             last_name = str(row.get('last_name', '') or '').strip()
+            
+            # If 'name' column exists, use it; otherwise combine first_name + last_name
+            if name_col:
+                first_name = name_col
+                last_name = ''
+            
             email = str(row.get('email', '') or '').strip().lower()
             
             if not email or '@' not in email:
