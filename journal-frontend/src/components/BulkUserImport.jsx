@@ -59,7 +59,8 @@ const BulkUserImport = () => {
         <p className="text-gray-400 mb-4">Your CSV/XLSX file must have these columns:</p>
         <div className="bg-[#1e3a5f] rounded-lg p-4 mb-4">
           <code className="text-sm text-green-400">first_name, last_name, email</code>
-          <p className="text-xs text-gray-500 mt-2">Optional: phone, country, password</p>
+          <p className="text-xs text-gray-500 mt-2">Or use: <code className="text-green-400">name, email</code></p>
+          <p className="text-xs text-gray-500 mt-1">Optional: phone, country, password</p>
         </div>
         <p className="text-xs text-gray-500">If password is empty, a random one will be generated. If password looks hashed (starts with scrypt: or pbkdf2:), it will be used as-is.</p>
       </div>
@@ -76,6 +77,7 @@ const BulkUserImport = () => {
             className="w-full px-3 py-2 bg-[#1e3a5f] border border-[#2d4a6f] rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none"
           >
             <option value="talaria-prop">Talaria-prop</option>
+            <option value="hermes-website">Hermes Website</option>
             <option value="mentorship">Mentorship</option>
             <option value="organic">Organic</option>
             <option value="other">Other</option>
@@ -140,10 +142,14 @@ const BulkUserImport = () => {
       
       <div className="bg-[#0a1628] rounded-xl p-6 border border-[#2d4a6f]">
         <h4 className="text-lg font-semibold mb-4 text-white">🎯 User Sources</h4>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm">
           <div className="bg-[#1e3a5f] rounded-lg p-3 border border-[#2d4a6f]">
-            <h5 className="font-medium text-orange-400">🏢 Talaria-prop</h5>
+            <h5 className="font-medium text-cyan-400">🏢 Talaria-prop</h5>
             <p className="text-gray-400">Prop firm users</p>
+          </div>
+          <div className="bg-[#1e3a5f] rounded-lg p-3 border border-[#2d4a6f]">
+            <h5 className="font-medium text-pink-400">🌐 Hermes</h5>
+            <p className="text-gray-400">Hermes website users</p>
           </div>
           <div className="bg-[#1e3a5f] rounded-lg p-3 border border-[#2d4a6f]">
             <h5 className="font-medium text-purple-400">🎓 Mentorship</h5>
@@ -154,7 +160,7 @@ const BulkUserImport = () => {
             <p className="text-gray-400">Self-registered users</p>
           </div>
           <div className="bg-[#1e3a5f] rounded-lg p-3 border border-[#2d4a6f]">
-            <h5 className="font-medium text-gray-400">� Other</h5>
+            <h5 className="font-medium text-gray-400">📦 Other</h5>
             <p className="text-gray-400">Other sources</p>
           </div>
         </div>
