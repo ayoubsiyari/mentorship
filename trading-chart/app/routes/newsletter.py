@@ -406,11 +406,12 @@ def _send_newsletter_email(
                             <td style="background-color: #ffffff; padding: 20px 30px 0;">
                                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                                     <tr>
-                                        <td style="text-align: left;">
+                                        <td width="60" style="text-align: left;"></td>
+                                        <td style="text-align: center;">
                                             <img src="https://talaria-log.com/LOGO-09.png" alt="Talaria" style="height: 45px;">
                                         </td>
-                                        <td style="text-align: right;">
-                                            <a href="https://journal.talaria-log.com" style="color: #1f2937; text-decoration: underline; font-size: 14px;">Login</a>
+                                        <td width="60" style="text-align: right;">
+                                            <a href="https://talaria-log.com/login" style="color: #1f2937; text-decoration: underline; font-size: 14px;">Login</a>
                                         </td>
                                     </tr>
                                 </table>
