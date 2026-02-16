@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Mail, Users, Send, CheckCircle, AlertCircle, Search, Trash2, RefreshCw, Eye, Bold, Italic, Underline, Link2, Image, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Type } from 'lucide-react';
+import { Mail, Users, Send, CheckCircle, AlertCircle, Search, Trash2, RefreshCw, Eye, Bold, Italic, Underline as UnderlineIcon, Link2, Image, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Type } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import Link from '@tiptap/extension-link';
+import UnderlineExtension from '@tiptap/extension-underline';
+import LinkExtension from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import ImageExtension from '@tiptap/extension-image';
 import Color from '@tiptap/extension-color';
@@ -57,7 +57,7 @@ const MenuBar = ({ editor }) => {
         className={`p-2 rounded hover:bg-white/10 transition-colors ${editor.isActive('underline') ? 'bg-blue-500/30 text-blue-400' : 'text-gray-400'}`}
         title="Underline"
       >
-        <Underline className="w-4 h-4" />
+        <UnderlineIcon className="w-4 h-4" />
       </button>
 
       <div className="w-px h-6 bg-[#2d4a6f] mx-1" />
@@ -192,8 +192,8 @@ const NewsletterManager = () => {
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Underline,
-      Link.configure({ openOnClick: false }),
+      UnderlineExtension,
+      LinkExtension.configure({ openOnClick: false }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       ImageExtension,
       TextStyle,
