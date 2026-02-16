@@ -349,17 +349,17 @@ def forgot_password():
     user = User.query.filter_by(email=email).first()
     
     if not user:
-        # Don't reveal if user exists or not for security
+        # User not in journal database - they're not from mentorship program
         return jsonify({
-            "message": "If an account with this email exists, a password reset link has been sent."
-        }), 200
+            "error": "هذا البريد الإلكتروني غير مسجل في برنامج المنتورشيب 2025. يرجى التواصل مع الدعم إذا كنت تعتقد أن هذا خطأ."
+        }), 404
 
     # Only send reset emails to verified email addresses to avoid bounces
     if not user.email_verified:
         current_app.logger.warning(f"Password reset requested for unverified email: {email}")
         return jsonify({
-            "message": "If an account with this email exists, a password reset link has been sent."
-        }), 200
+            "error": "البريد الإلكتروني غير مُفعّل. يرجى تفعيل بريدك الإلكتروني أولاً أو التواصل مع الدعم."
+        }), 400
 
     # Generate 6-digit reset code
     reset_code = user.generate_verification_token()
