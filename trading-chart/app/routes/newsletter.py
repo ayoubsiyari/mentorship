@@ -384,36 +384,149 @@ def _send_newsletter_email(
     unsubscribe_token: str
 ) -> None:
     """Send newsletter email to a subscriber."""
-    display_name = name or "عزيزي المشترك"
+    display_name = name or "المتداول"
     unsubscribe_url = f"https://talaria-log.com/api/newsletter/unsubscribe/{unsubscribe_token}"
     
     html_body = f"""
-    <html dir="rtl">
-    <body style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 20px; background-color: #1a1a2e; margin: 0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #0f0f23; border-radius: 15px; padding: 30px; border: 1px solid #3730a3; direction: rtl; text-align: right;">
-            <div style="text-align: center; margin-bottom: 25px;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 28px;">📬 Talaria Newsletter</h1>
-            </div>
-            
-            <p style="color: #e0e7ff; font-size: 16px; line-height: 1.8;">
-                مرحباً <strong style="color: #ffffff;">{display_name}</strong>،
-            </p>
-            
-            <div style="color: #c7d2fe; font-size: 15px; line-height: 1.8;">
-                {content}
-            </div>
-            
-            <hr style="border: none; border-top: 1px solid #3730a3; margin: 30px 0;">
-            
-            <p style="color: #6b7280; font-size: 12px; text-align: center;">
-                لإلغاء الاشتراك من النشرة الإخبارية، 
-                <a href="{unsubscribe_url}" style="color: #60a5fa;">اضغط هنا</a>
-            </p>
-            
-            <p style="color: #4b5563; font-size: 11px; text-align: center; margin-top: 20px;">
-                © 2026 Talaria Log Trading Platform
-            </p>
-        </div>
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{subject}</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Segoe UI', Tahoma, Arial, sans-serif;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5;">
+            <tr>
+                <td align="center" style="padding: 40px 20px;">
+                    <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        
+                        <!-- HEADER - FIXED -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #1e3a5f 0%, #0a1628 100%); padding: 30px; text-align: center;">
+                                <img src="https://talaria-log.com/logo-04.png" alt="Talaria" style="height: 50px; margin-bottom: 20px;">
+                                <div style="background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); border-radius: 12px; padding: 30px 20px;">
+                                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Talaria Newsletter</h1>
+                                    <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0; font-size: 14px;">أحدث التحليلات والرؤى من فريق Talaria</p>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- GREETING -->
+                        <tr>
+                            <td style="padding: 40px 40px 20px; direction: rtl; text-align: right;">
+                                <p style="color: #1f2937; font-size: 16px; margin: 0; line-height: 1.6;">
+                                    عزيزي <strong>{display_name}</strong>،
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- CONTENT - DYNAMIC -->
+                        <tr>
+                            <td style="padding: 0 40px 40px; direction: rtl; text-align: right;">
+                                <div style="color: #374151; font-size: 15px; line-height: 1.8;">
+                                    {content}
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- CTA BUTTON -->
+                        <tr>
+                            <td style="padding: 0 40px 40px; text-align: center;">
+                                <a href="https://journal.talaria-log.com" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                                    تداول الآن
+                                </a>
+                            </td>
+                        </tr>
+                        
+                        <!-- DISCLAIMER -->
+                        <tr>
+                            <td style="padding: 30px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb;">
+                                <p style="color: #6b7280; font-size: 12px; line-height: 1.6; margin: 0; font-style: italic; direction: rtl; text-align: right;">
+                                    المواد المقدمة هنا لم يتم إعدادها وفقاً للمتطلبات القانونية المصممة لتعزيز استقلالية البحث الاستثماري، وعلى هذا النحو تعتبر رسالة تسويقية. Talaria لا تمثل أن المواد المقدمة هنا دقيقة أو حديثة أو كاملة، وبالتالي لا ينبغي الاعتماد عليها.
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- CONTACT SECTION - FIXED -->
+                        <tr>
+                            <td style="padding: 40px; background-color: #1e3a5f; text-align: center;">
+                                <p style="color: #ffffff; font-size: 18px; margin: 0 0 25px; font-weight: 600;">هل لديك سؤال؟ تواصل معنا</p>
+                                <table role="presentation" align="center" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td style="padding: 0 15px; text-align: center;">
+                                            <a href="https://talaria-log.com" style="color: #60a5fa; text-decoration: none; font-size: 13px;">
+                                                <div style="width: 50px; height: 50px; background-color: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 8px; line-height: 50px;">🌐</div>
+                                                الموقع
+                                            </a>
+                                        </td>
+                                        <td style="padding: 0 15px; text-align: center;">
+                                            <a href="mailto:support-center@talaria-log.com" style="color: #60a5fa; text-decoration: none; font-size: 13px;">
+                                                <div style="width: 50px; height: 50px; background-color: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 8px; line-height: 50px;">✉️</div>
+                                                البريد
+                                            </a>
+                                        </td>
+                                        <td style="padding: 0 15px; text-align: center;">
+                                            <a href="https://journal.talaria-log.com" style="color: #60a5fa; text-decoration: none; font-size: 13px;">
+                                                <div style="width: 50px; height: 50px; background-color: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 8px; line-height: 50px;">📊</div>
+                                                المنصة
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                        <!-- FOOTER - FIXED -->
+                        <tr>
+                            <td style="padding: 30px 40px; background-color: #0a1628; text-align: center;">
+                                <!-- Social Links -->
+                                <table role="presentation" align="center" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
+                                    <tr>
+                                        <td style="padding: 0 8px;">
+                                            <a href="https://twitter.com/talarialog" style="display: inline-block; width: 36px; height: 36px; background-color: rgba(255,255,255,0.1); border-radius: 50%; line-height: 36px; text-decoration: none;">
+                                                <span style="color: #ffffff; font-size: 16px;">𝕏</span>
+                                            </a>
+                                        </td>
+                                        <td style="padding: 0 8px;">
+                                            <a href="https://instagram.com/talarialog" style="display: inline-block; width: 36px; height: 36px; background-color: rgba(255,255,255,0.1); border-radius: 50%; line-height: 36px; text-decoration: none;">
+                                                <span style="color: #ffffff; font-size: 16px;">📷</span>
+                                            </a>
+                                        </td>
+                                        <td style="padding: 0 8px;">
+                                            <a href="https://youtube.com/@talarialog" style="display: inline-block; width: 36px; height: 36px; background-color: rgba(255,255,255,0.1); border-radius: 50%; line-height: 36px; text-decoration: none;">
+                                                <span style="color: #ffffff; font-size: 16px;">▶️</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+                                
+                                <!-- Logo -->
+                                <img src="https://talaria-log.com/logo-04.png" alt="Talaria" style="height: 35px; margin-bottom: 15px;">
+                                
+                                <!-- Links -->
+                                <p style="margin: 0 0 15px;">
+                                    <a href="https://talaria-log.com/privacy" style="color: #9ca3af; text-decoration: none; font-size: 12px;">سياسة الخصوصية</a>
+                                    <span style="color: #4b5563; margin: 0 10px;">|</span>
+                                    <a href="{unsubscribe_url}" style="color: #9ca3af; text-decoration: none; font-size: 12px;">إلغاء الاشتراك</a>
+                                </p>
+                                
+                                <!-- Risk Warning -->
+                                <p style="color: #6b7280; font-size: 11px; line-height: 1.5; margin: 0 0 15px; direction: rtl;">
+                                    تحذير المخاطر: التداول في العقود مقابل الفروقات والفوركس محفوف بالمخاطر. قد تخسر أكثر من استثمارك الأولي. هذا البريد يحتوي على معلومات عامة ولا يأخذ في الاعتبار أهدافك الشخصية أو وضعك المالي.
+                                </p>
+                                
+                                <!-- Copyright -->
+                                <p style="color: #4b5563; font-size: 11px; margin: 0;">
+                                    © 2026 Talaria Log Trading Platform. جميع الحقوق محفوظة.
+                                </p>
+                            </td>
+                        </tr>
+                        
+                    </table>
+                </td>
+            </tr>
+        </table>
     </body>
     </html>
     """
