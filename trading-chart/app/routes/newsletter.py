@@ -308,7 +308,7 @@ def _send_newsletter_email(
     
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = f"Talaria Newsletter <{settings.smtp_from}>"
+    msg["From"] = f"Talaria Newsletter <{settings.smtp_from_email}>"
     msg["To"] = email
     msg["Date"] = formatdate(localtime=True)
     msg["Message-ID"] = make_msgid(domain="talaria-log.com")
@@ -318,4 +318,4 @@ def _send_newsletter_email(
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
         server.starttls()
         server.login(settings.smtp_user, settings.smtp_password)
-        server.sendmail(settings.smtp_from, email, msg.as_string())
+        server.sendmail(settings.smtp_from_email, email, msg.as_string())
