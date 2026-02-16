@@ -15,6 +15,7 @@ from ..models import User
 from ..schemas import LoginIn, SignupIn, UpdateProfileIn, UserPublic, VerifyEmailIn, ResendCodeIn, ForgotPasswordIn, ResetPasswordIn
 from ..security import create_session_token, hash_password, verify_password
 from ..settings import settings
+from ..email_validator import validate_email, check_domain_typo, is_blocked_domain
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +157,21 @@ def send_password_reset_email(email: str, code: str, name: str) -> None:
 
 @router.post("/signup")
 def signup(payload: SignupIn, db: Session = Depends(get_db)):
-    existing = db.execute(select(User).where(User.email == payload.email.lower())).scalar_one_or_none()
+    # Validate email format and check for typos/blocked domains
+    email = payload.email.strip().lower()
+    is_valid, message, suggested_email = validate_email(email, check_api=True)
+    
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=message)
+    
+    # If there's a suggested correction (typo detected), return suggestion
+    if suggested_email and suggested_email != email:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid email domain. {message}"
+        )
+    
+    existing = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
     
     if existing:
         if existing.email_verified:
@@ -182,7 +197,7 @@ def signup(payload: SignupIn, db: Session = Depends(get_db)):
     code = generate_verification_code()
     user = User(
         name=payload.name.strip(),
-        email=payload.email.lower(),
+        email=email,
         password_hash=hash_password(payload.password),
         role="user",
         is_active=False,  # Not active until verified

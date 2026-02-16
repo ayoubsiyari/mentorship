@@ -5,6 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from models import db, User, Profile, BlockedIP, SecurityLog, FailedLoginAttempt
 from email_service import send_verification_email, send_password_reset_email, send_welcome_email
+from email_validator import validate_email, check_domain_typo, is_blocked_domain
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import os
@@ -349,6 +350,13 @@ def forgot_password():
     
     if not user:
         # Don't reveal if user exists or not for security
+        return jsonify({
+            "message": "If an account with this email exists, a password reset link has been sent."
+        }), 200
+
+    # Only send reset emails to verified email addresses to avoid bounces
+    if not user.email_verified:
+        current_app.logger.warning(f"Password reset requested for unverified email: {email}")
         return jsonify({
             "message": "If an account with this email exists, a password reset link has been sent."
         }), 200
