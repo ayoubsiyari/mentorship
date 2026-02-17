@@ -2215,8 +2215,19 @@ export default function Settings() {
                               <h6 className="text-xs font-medium text-gray-400 mb-3">Top Attacking IPs</h6>
                               <div className="space-y-2">
                                 {serverMonitoring.security.ssh_attacks.top_attackers.map((attacker, idx) => (
-                                  <div key={idx} className="flex items-center justify-between text-sm">
-                                    <span className="text-white font-mono">{attacker.ip}</span>
+                                  <div key={idx} className="flex items-center justify-between text-sm py-1">
+                                    <div className="flex items-center gap-2">
+                                      {attacker.country_code && (
+                                        <img 
+                                          src={`https://flagcdn.com/16x12/${attacker.country_code.toLowerCase()}.png`}
+                                          alt={attacker.country_code}
+                                          className="w-4 h-3"
+                                          onError={(e) => e.target.style.display = 'none'}
+                                        />
+                                      )}
+                                      <span className="text-white font-mono text-xs">{attacker.ip}</span>
+                                      <span className="text-gray-500 text-xs">{attacker.country || ''}</span>
+                                    </div>
                                     <span className="text-red-400 font-medium">{attacker.count} attempts</span>
                                   </div>
                                 ))}

@@ -224,9 +224,10 @@ def get_services_status(_: Any = Depends(require_admin)) -> dict:
     # Check docker via socket if mounted, otherwise indicate running in container
     status_list.append({"name": "docker", "status": "active (container)", "ok": True})
     
-    # Check fail2ban via host logs
-    fail2ban_check = run_command(["sh", "-c", "ls /host-logs/fail2ban.log 2>/dev/null && echo 'active' || echo 'check host'"])
-    status_list.append({"name": "fail2ban", "status": "active" if "active" in fail2ban_check else "check host", "ok": "active" in fail2ban_check})
+    # Check fail2ban via host logs (check if log was recently modified = service active)
+    fail2ban_check = run_command(["sh", "-c", "find /host-logs/fail2ban.log -mmin -60 2>/dev/null && echo 'active' || echo 'inactive'"])
+    is_active = "active" in fail2ban_check and "fail2ban.log" in fail2ban_check
+    status_list.append({"name": "fail2ban", "status": "active" if is_active else "check host", "ok": is_active})
     
     # UFW status from host
     status_list.append({"name": "ufw", "status": "check host", "ok": True})
