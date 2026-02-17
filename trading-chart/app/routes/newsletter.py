@@ -278,6 +278,7 @@ class SendNewsletterRequest(BaseModel):
     content: str  # HTML content
     send_to_all: bool = True
     subscriber_ids: list[int] | None = None
+    test_email: str | None = None  # Send test to specific email
 
 
 class SendNewsletterResponse(BaseModel):
@@ -359,6 +360,33 @@ def send_newsletter(
     admin: User = Depends(require_admin)
 ):
     """Send newsletter to subscribers (admin only)."""
+    sent_count = 0
+    failed_count = 0
+    
+    # Test email mode - send to single email
+    if data.test_email:
+        try:
+            _send_newsletter_email(
+                email=data.test_email,
+                name="Test User",
+                subject=f"[TEST] {data.subject}",
+                content=data.content,
+                unsubscribe_token="test-token"
+            )
+            return SendNewsletterResponse(
+                success=True,
+                sent_count=1,
+                failed_count=0,
+                message=f"تم إرسال البريد التجريبي إلى {data.test_email}"
+            )
+        except Exception as e:
+            return SendNewsletterResponse(
+                success=False,
+                sent_count=0,
+                failed_count=1,
+                message=f"فشل إرسال البريد التجريبي: {str(e)}"
+            )
+    
     # Get subscribers to send to
     if data.send_to_all:
         subscribers = db.execute(
@@ -384,9 +412,6 @@ def send_newsletter(
             failed_count=0,
             message="لا يوجد مشتركين نشطين لإرسال النشرة إليهم"
         )
-    
-    sent_count = 0
-    failed_count = 0
     
     for subscriber in subscribers:
         try:
