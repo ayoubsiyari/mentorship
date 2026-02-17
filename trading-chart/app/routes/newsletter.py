@@ -4,7 +4,10 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate, make_msgid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import HTMLResponse
+import uuid
+import os
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
@@ -296,6 +299,46 @@ def list_subscribers(
         total=total,
         active_count=active_count
     )
+
+
+UPLOAD_DIR = "/app/uploads/newsletter"
+
+@router.post("/admin/upload-image")
+async def upload_newsletter_image(
+    file: UploadFile = File(...),
+    admin: User = Depends(require_admin)
+):
+    """Upload an image for newsletter content (admin only)."""
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only JPEG, PNG, GIF, WEBP allowed.")
+    
+    # Create upload directory if it doesn't exist
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    
+    # Generate unique filename
+    ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+    filename = f"{uuid.uuid4()}.{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    
+    # Save file
+    contents = await file.read()
+    with open(filepath, "wb") as f:
+        f.write(contents)
+    
+    # Return the URL
+    return {"url": f"https://talaria-log.com/api/newsletter/images/{filename}"}
+
+
+@router.get("/images/{filename}")
+async def get_newsletter_image(filename: str):
+    """Serve uploaded newsletter images."""
+    from fastapi.responses import FileResponse
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(filepath)
 
 
 @router.post("/admin/send", response_model=SendNewsletterResponse)

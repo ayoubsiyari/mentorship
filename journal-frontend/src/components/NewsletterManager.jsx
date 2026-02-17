@@ -12,8 +12,8 @@ import { TextStyle } from '@tiptap/extension-text-style';
 const MenuBar = ({ editor }) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
-  const [showImageInput, setShowImageInput] = useState(false);
-  const [imageUrl, setImageUrl] = useState('');
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   if (!editor) return null;
 
@@ -25,11 +25,31 @@ const MenuBar = ({ editor }) => {
     }
   };
 
-  const addImage = () => {
-    if (imageUrl) {
-      editor.chain().focus().setImage({ src: imageUrl }).run();
-      setImageUrl('');
-      setShowImageInput(false);
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/newsletter/admin/upload-image', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        editor.chain().focus().setImage({ src: data.url }).run();
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -63,20 +83,29 @@ const MenuBar = ({ editor }) => {
       <div className="w-px h-6 bg-[#2d4a6f] mx-1" />
 
       {/* Colors */}
-      <div className="relative group">
-        <button className="p-2 rounded hover:bg-white/10 transition-colors text-gray-400" title="Text Color">
+      <div className="relative">
+        <button 
+          onClick={() => setShowColorPicker(!showColorPicker)}
+          className="p-2 rounded hover:bg-white/10 transition-colors text-gray-400" 
+          title="Text Color"
+        >
           <Type className="w-4 h-4" />
         </button>
-        <div className="absolute top-full left-0 mt-1 p-2 bg-[#1e3a5f] rounded-lg shadow-xl hidden group-hover:flex gap-1 z-10">
-          {colors.map((color) => (
-            <button
-              key={color}
-              onClick={() => editor.chain().focus().setColor(color).run()}
-              className="w-6 h-6 rounded border border-gray-600 hover:scale-110 transition-transform"
-              style={{ backgroundColor: color }}
-            />
-          ))}
-        </div>
+        {showColorPicker && (
+          <div className="absolute top-full left-0 mt-1 p-2 bg-[#1e3a5f] rounded-lg shadow-xl flex gap-1 z-10">
+            {colors.map((color) => (
+              <button
+                key={color}
+                onClick={() => {
+                  editor.chain().focus().setColor(color).run();
+                  setShowColorPicker(false);
+                }}
+                className="w-6 h-6 rounded border border-gray-600 hover:scale-110 transition-transform"
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="w-px h-6 bg-[#2d4a6f] mx-1" />
@@ -148,29 +177,22 @@ const MenuBar = ({ editor }) => {
         )}
       </div>
 
-      {/* Image */}
-      <div className="relative">
-        <button
-          onClick={() => setShowImageInput(!showImageInput)}
-          className="p-2 rounded hover:bg-white/10 transition-colors text-gray-400"
-          title="Insert Image"
+      {/* Image Upload */}
+      <label className="relative cursor-pointer">
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
+          disabled={uploading}
+        />
+        <div
+          className={`p-2 rounded hover:bg-white/10 transition-colors text-gray-400 ${uploading ? 'opacity-50' : ''}`}
+          title="Upload Image"
         >
           <Image className="w-4 h-4" />
-        </button>
-        {showImageInput && (
-          <div className="absolute top-full left-0 mt-1 p-2 bg-[#1e3a5f] rounded-lg shadow-xl z-10 flex gap-2">
-            <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="Image URL..."
-              className="px-2 py-1 bg-[#0a1628] border border-[#2d4a6f] rounded text-white text-sm w-48"
-              onKeyDown={(e) => e.key === 'Enter' && addImage()}
-            />
-            <button onClick={addImage} className="px-2 py-1 bg-blue-500 text-white rounded text-sm">Add</button>
-          </div>
-        )}
-      </div>
+        </div>
+      </label>
     </div>
   );
 };
