@@ -150,6 +150,7 @@ export default function Settings() {
   // Server monitoring state
   const [serverMonitoring, setServerMonitoring] = useState(null);
   const [serverMonitoringLoading, setServerMonitoringLoading] = useState(false);
+  const [attackHistory, setAttackHistory] = useState(null);
 
   // Application security state
   const [securityStats, setSecurityStats] = useState(null);
