@@ -212,6 +212,8 @@ const NewsletterManager = () => {
   const [editorExpanded, setEditorExpanded] = useState(false);
   const [useHtmlMode, setUseHtmlMode] = useState(false);
   const [htmlContent, setHtmlContent] = useState('');
+  const [sendMode, setSendMode] = useState('all'); // 'all' or 'test'
+  const [testEmail, setTestEmail] = useState('');
 
   // Rich text editor
   const editor = useEditor({
@@ -311,7 +313,8 @@ const NewsletterManager = () => {
         body: JSON.stringify({
           subject,
           content,
-          send_to_all: true
+          send_to_all: sendMode === 'all',
+          test_email: sendMode === 'test' ? testEmail : null
         })
       });
 
@@ -521,6 +524,36 @@ const NewsletterManager = () => {
               )}
             </div>
 
+            <div className="space-y-3">
+              <div className="flex items-center gap-4">
+                <label className="text-sm text-gray-400">Send to:</label>
+                <div className="flex items-center bg-[#0a1628] border border-[#2d4a6f] rounded overflow-hidden">
+                  <button
+                    onClick={() => setSendMode('all')}
+                    className={`px-3 py-1.5 text-sm transition-colors ${sendMode === 'all' ? 'bg-emerald-500/30 text-emerald-400' : 'text-gray-400 hover:text-white'}`}
+                  >
+                    All Subscribers
+                  </button>
+                  <button
+                    onClick={() => setSendMode('test')}
+                    className={`px-3 py-1.5 text-sm transition-colors ${sendMode === 'test' ? 'bg-blue-500/30 text-blue-400' : 'text-gray-400 hover:text-white'}`}
+                  >
+                    Test Email
+                  </button>
+                </div>
+              </div>
+              
+              {sendMode === 'test' && (
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="Enter test email address..."
+                  className="w-full px-4 py-2 bg-[#0a1628] border border-[#2d4a6f] rounded-lg text-white focus:outline-none focus:border-blue-500/50"
+                />
+              )}
+            </div>
+
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowPreview(!showPreview)}
@@ -531,13 +564,18 @@ const NewsletterManager = () => {
               </button>
               <button
                 onClick={handleSendNewsletter}
-                disabled={sending || !subject.trim()}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={sending || !subject.trim() || (sendMode === 'test' && !testEmail.trim())}
+                className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${sendMode === 'test' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500' : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500'}`}
               >
                 {sending ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
                     Sending...
+                  </>
+                ) : sendMode === 'test' ? (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Send Test Email
                   </>
                 ) : (
                   <>
