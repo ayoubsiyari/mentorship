@@ -37,6 +37,7 @@ services:
       NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL:-}
     volumes:
       - ./secrets:/run/secrets:ro
+      - newsletter_uploads:/app/uploads/newsletter
     ports:
       - "8001:8000"
     depends_on:
@@ -84,3 +85,4 @@ services:
 
 volumes:
   postgres_data:
+  newsletter_uploads:
