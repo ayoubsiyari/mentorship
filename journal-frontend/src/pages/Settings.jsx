@@ -151,6 +151,7 @@ export default function Settings() {
   const [serverMonitoring, setServerMonitoring] = useState(null);
   const [serverMonitoringLoading, setServerMonitoringLoading] = useState(false);
   const [attackHistory, setAttackHistory] = useState(null);
+  const [healthSubTab, setHealthSubTab] = useState('overview'); // overview, security, services, controls
 
   // Application security state
   const [securityStats, setSecurityStats] = useState(null);
@@ -1976,43 +1977,91 @@ export default function Settings() {
 
                 {/* System Health Tab */}
                 {activeAdminTab === 'health' && (
-                  <div className="space-y-6">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-bold text-white">Server Monitoring</h3>
-                        <p className="text-sm text-gray-500">Real-time VPS health & security</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {/* Threat Level Indicator */}
-                        {serverMonitoring?.threat_level && (
-                          <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            serverMonitoring.threat_level === 'critical' ? 'bg-red-500/20 text-red-400 border border-red-500/50' :
-                            serverMonitoring.threat_level === 'high' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50' :
-                            serverMonitoring.threat_level === 'medium' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' :
-                            'bg-green-500/20 text-green-400 border border-green-500/50'
-                          }`}>
-                            🛡️ {serverMonitoring.threat_level.toUpperCase()}
+                  <div className="space-y-4">
+                    {/* Header with Quick Stats */}
+                    <div className="bg-gradient-to-r from-[#0a1628] to-[#1e3a5f] rounded-xl p-4 border border-[#2d4a6f]">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                            <Server className="w-6 h-6 text-blue-400" />
                           </div>
-                        )}
-                        {/* Auto-refresh toggle */}
+                          <div>
+                            <h3 className="text-xl font-bold text-white">Server Control Center</h3>
+                            <p className="text-sm text-gray-400">Real-time monitoring & controls</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {/* Status Indicator */}
+                          <div className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 ${
+                            serverMonitoring?.health_status === 'healthy' ? 'bg-green-500/20 text-green-400 border border-green-500/50' :
+                            serverMonitoring?.health_status === 'warning' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' :
+                            serverMonitoring?.health_status === 'critical' ? 'bg-red-500/20 text-red-400 border border-red-500/50' :
+                            'bg-gray-500/20 text-gray-400 border border-gray-500/50'
+                          }`}>
+                            <div className={`w-2 h-2 rounded-full ${
+                              serverMonitoring?.health_status === 'healthy' ? 'bg-green-500 animate-pulse' :
+                              serverMonitoring?.health_status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                            }`} />
+                            {serverMonitoring?.health_status?.toUpperCase() || 'LOADING'}
+                          </div>
+                          <button
+                            onClick={() => setAutoRefresh(!autoRefresh)}
+                            className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                              autoRefresh ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-gray-500/20 text-gray-400 border border-gray-500/50'
+                            }`}
+                          >
+                            {autoRefresh ? '⟳ Auto ON' : '⟳ Auto OFF'}
+                          </button>
+                          <button
+                            onClick={() => { fetchSystemHealth(); fetchServerMonitoring(); }}
+                            disabled={serverMonitoringLoading}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50"
+                          >
+                            <RefreshCw className={`w-4 h-4 ${serverMonitoringLoading ? 'animate-spin' : ''}`} />
+                            Refresh
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Quick Stats Bar */}
+                      <div className="grid grid-cols-4 gap-3 mt-4">
+                        <div className="bg-[#1e3a5f]/50 rounded-lg p-3 text-center">
+                          <p className="text-2xl font-bold text-white">{serverMonitoring?.system?.cpu?.percent?.toFixed(0) || 0}%</p>
+                          <p className="text-xs text-gray-400">CPU</p>
+                        </div>
+                        <div className="bg-[#1e3a5f]/50 rounded-lg p-3 text-center">
+                          <p className="text-2xl font-bold text-white">{serverMonitoring?.system?.memory?.percent?.toFixed(0) || 0}%</p>
+                          <p className="text-xs text-gray-400">Memory</p>
+                        </div>
+                        <div className="bg-[#1e3a5f]/50 rounded-lg p-3 text-center">
+                          <p className="text-2xl font-bold text-white">{serverMonitoring?.security?.fail2ban?.banned_count || 0}</p>
+                          <p className="text-xs text-gray-400">Blocked IPs</p>
+                        </div>
+                        <div className="bg-[#1e3a5f]/50 rounded-lg p-3 text-center">
+                          <p className="text-2xl font-bold text-white">{serverMonitoring?.security?.ssh_attacks?.top_attackers?.length || 0}</p>
+                          <p className="text-xs text-gray-400">Attackers</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sub-tabs Navigation */}
+                    <div className="flex gap-1 bg-[#0a1628] p-1 rounded-lg border border-[#2d4a6f]">
+                      {[
+                        { id: 'overview', label: '📊 Overview', icon: Activity },
+                        { id: 'security', label: '🛡️ Security', icon: Shield },
+                        { id: 'services', label: '🐳 Services', icon: Server },
+                        { id: 'controls', label: '⚙️ Controls', icon: SettingsIcon }
+                      ].map(tab => (
                         <button
-                          onClick={() => setAutoRefresh(!autoRefresh)}
-                          className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                            autoRefresh ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-gray-500/20 text-gray-400 border border-gray-500/50'
+                          key={tab.id}
+                          onClick={() => setHealthSubTab(tab.id)}
+                          className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-all ${
+                            healthSubTab === tab.id ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-[#1e3a5f]'
                           }`}
                         >
-                          {autoRefresh ? '⟳ Auto ON' : '⟳ Auto OFF'}
+                          {tab.label}
                         </button>
-                        <button
-                          onClick={() => { fetchSystemHealth(); fetchServerMonitoring(); }}
-                          disabled={serverMonitoringLoading}
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50"
-                        >
-                          <RefreshCw className={`w-4 h-4 ${serverMonitoringLoading ? 'animate-spin' : ''}`} />
-                          Refresh
-                        </button>
-                      </div>
+                      ))}
                     </div>
 
                     {/* Overall Health Status */}
