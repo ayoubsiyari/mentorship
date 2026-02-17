@@ -159,6 +159,7 @@ export default function Settings() {
   const [newBlockIP, setNewBlockIP] = useState('');
   const [newBlockReason, setNewBlockReason] = useState('');
   const [blockingIP, setBlockingIP] = useState(false);
+  const [hostSecurityData, setHostSecurityData] = useState(null);
 
   // Security settings state
   const [securitySettings, setSecuritySettings] = useState({});
@@ -660,11 +661,12 @@ export default function Settings() {
       const token = localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
       
-      const [statsRes, blockedRes, failedRes, logsRes] = await Promise.all([
+      const [statsRes, blockedRes, failedRes, logsRes, hostSecRes] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/security/stats`, { headers }),
         fetch(`${API_BASE_URL}/admin/security/blocked-ips`, { headers }),
         fetch(`${API_BASE_URL}/admin/security/failed-logins`, { headers }),
-        fetch(`${API_BASE_URL}/admin/security/logs?limit=20`, { headers })
+        fetch(`${API_BASE_URL}/admin/security/logs?limit=20`, { headers }),
+        fetch(`${API_BASE_URL}/admin/monitoring/security`, { headers })
       ]);
       
       if (statsRes.ok) {
@@ -682,6 +684,10 @@ export default function Settings() {
       if (logsRes.ok) {
         const data = await logsRes.json();
         setSecurityLogs(data.logs || []);
+      }
+      if (hostSecRes.ok) {
+        const data = await hostSecRes.json();
+        setHostSecurityData(data);
       }
     } catch (err) {
       console.error('Error fetching security data:', err);
@@ -2167,6 +2173,58 @@ export default function Settings() {
                           <p className="text-lg font-bold text-white">{securityStats?.unique_threat_ips || 0}</p>
                         </div>
                       </div>
+
+                      {/* Host Security Data (from VPS logs) */}
+                      {hostSecurityData && (
+                        <div className="mb-4">
+                          <h5 className="text-xs font-medium text-gray-400 mb-3 flex items-center gap-2">
+                            <Server className="w-3 h-3" />
+                            VPS Security (Real-time from host logs)
+                          </h5>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div className={`rounded-lg p-4 border ${(hostSecurityData?.ssh_attacks?.total_failed_attempts || 0) > 100 ? 'bg-red-500/10 border-red-500/30' : 'bg-[#1e3a5f] border-[#2d4a6f]'}`}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <AlertTriangle className="w-3 h-3 text-red-400" />
+                                <span className="text-xs text-gray-400">SSH Brute Force Attempts</span>
+                              </div>
+                              <p className={`text-2xl font-bold ${(hostSecurityData?.ssh_attacks?.total_failed_attempts || 0) > 100 ? 'text-red-400' : 'text-white'}`}>
+                                {hostSecurityData?.ssh_attacks?.total_failed_attempts || 0}
+                              </p>
+                            </div>
+                            <div className={`rounded-lg p-4 border ${(hostSecurityData?.web_attacks?.suspicious_requests || 0) > 50 ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-[#1e3a5f] border-[#2d4a6f]'}`}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Globe className="w-3 h-3 text-yellow-400" />
+                                <span className="text-xs text-gray-400">Suspicious Web Requests</span>
+                              </div>
+                              <p className={`text-2xl font-bold ${(hostSecurityData?.web_attacks?.suspicious_requests || 0) > 50 ? 'text-yellow-400' : 'text-white'}`}>
+                                {hostSecurityData?.web_attacks?.suspicious_requests || 0}
+                              </p>
+                            </div>
+                            <div className="bg-[#1e3a5f] border border-[#2d4a6f] rounded-lg p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Shield className="w-3 h-3 text-green-400" />
+                                <span className="text-xs text-gray-400">Fail2Ban Banned</span>
+                              </div>
+                              <p className="text-2xl font-bold text-white">{hostSecurityData?.fail2ban?.banned_count || 0}</p>
+                            </div>
+                          </div>
+
+                          {/* Top Attackers */}
+                          {hostSecurityData?.ssh_attacks?.top_attackers?.length > 0 && (
+                            <div className="bg-[#1e3a5f] rounded-lg p-4">
+                              <h6 className="text-xs font-medium text-gray-400 mb-3">Top Attacking IPs</h6>
+                              <div className="space-y-2">
+                                {hostSecurityData.ssh_attacks.top_attackers.map((attacker, idx) => (
+                                  <div key={idx} className="flex items-center justify-between text-sm">
+                                    <span className="text-white font-mono">{attacker.ip}</span>
+                                    <span className="text-red-400 font-medium">{attacker.count} attempts</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Block IP Form */}
                       <div className="bg-[#1e3a5f] rounded-lg p-4 mb-4">
