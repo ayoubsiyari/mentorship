@@ -13,7 +13,8 @@ const MenuBar = ({ editor }) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [showImageInput, setShowImageInput] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
 
   if (!editor) return null;
 
@@ -25,31 +26,11 @@ const MenuBar = ({ editor }) => {
     }
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/newsletter/admin/upload-image', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        editor.chain().focus().setImage({ src: data.url }).run();
-      }
-    } catch (error) {
-      console.error('Upload failed:', error);
-    } finally {
-      setUploading(false);
-      e.target.value = '';
+  const addImage = () => {
+    if (imageUrl) {
+      editor.chain().focus().setImage({ src: imageUrl }).run();
+      setImageUrl('');
+      setShowImageInput(false);
     }
   };
 
@@ -177,22 +158,29 @@ const MenuBar = ({ editor }) => {
         )}
       </div>
 
-      {/* Image Upload */}
-      <label className="relative cursor-pointer">
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="hidden"
-          disabled={uploading}
-        />
-        <div
-          className={`p-2 rounded hover:bg-white/10 transition-colors text-gray-400 ${uploading ? 'opacity-50' : ''}`}
-          title="Upload Image"
+      {/* Image by URL */}
+      <div className="relative">
+        <button
+          onClick={() => setShowImageInput(!showImageInput)}
+          className={`p-2 rounded hover:bg-white/10 transition-colors ${showImageInput ? 'bg-blue-500/30 text-blue-400' : 'text-gray-400'}`}
+          title="Insert Image (URL)"
         >
           <Image className="w-4 h-4" />
-        </div>
-      </label>
+        </button>
+        {showImageInput && (
+          <div className="absolute top-full left-0 mt-1 p-2 bg-[#1e3a5f] rounded-lg shadow-xl z-10 flex gap-2">
+            <input
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Image URL from Gallery..."
+              className="px-2 py-1 bg-[#0a1628] border border-[#2d4a6f] rounded text-white text-sm w-64"
+              onKeyDown={(e) => e.key === 'Enter' && addImage()}
+            />
+            <button onClick={addImage} className="px-2 py-1 bg-blue-500 text-white rounded text-sm">Add</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
