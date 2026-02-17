@@ -393,3 +393,40 @@ def get_container_status(_: Any = Depends(require_admin)) -> dict:
         "services": services,
         "message": "Container management available via Docker Compose on host"
     }
+
+
+@router.get("/attack-history")
+def get_attack_history(_: Any = Depends(require_admin)) -> dict:
+    """Get historical attack data from archived logs."""
+    
+    # Get list of archived attack files
+    archives = run_command(["sh", "-c", "ls -la /host-logs/attack_history/*.log 2>/dev/null | tail -10"])
+    
+    # Read the latest SSH attackers archive
+    ssh_history = run_command(["sh", "-c", "cat /host-logs/attack_history/ssh_attackers_*.log 2>/dev/null | head -50"])
+    
+    # Parse SSH history
+    attackers_history = []
+    for line in ssh_history.strip().split('\n'):
+        parts = line.strip().split()
+        if len(parts) == 2:
+            try:
+                attackers_history.append({"count": int(parts[0]), "ip": parts[1]})
+            except:
+                pass
+    
+    # Get summary
+    summary = run_command(["sh", "-c", "cat /host-logs/attack_history/summary.log 2>/dev/null"])
+    
+    # Count total historical attacks
+    total_ssh = sum(a["count"] for a in attackers_history)
+    unique_ips = len(attackers_history)
+    
+    return {
+        "timestamp": datetime.utcnow().isoformat(),
+        "total_historical_ssh_attacks": total_ssh,
+        "unique_attacker_ips": unique_ips,
+        "top_historical_attackers": sorted(attackers_history, key=lambda x: x["count"], reverse=True)[:20],
+        "archives": archives,
+        "summary": summary
+    }
