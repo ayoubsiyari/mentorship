@@ -184,24 +184,27 @@ def get_security_status(_: Any = Depends(require_admin)) -> dict:
     
     # Parse top attackers with geolocation
     attacker_list = []
-    if top_attackers:
+    if top_attackers and top_attackers.strip():
         for line in top_attackers.strip().split("\n"):
             parts = line.strip().split()
             if len(parts) >= 2:
-                ip = parts[1]
-                ip_info = get_ip_info(ip)
-                attacker_list.append({
-                    "count": int(parts[0]),
-                    "ip": ip,
-                    "country": ip_info["country"],
-                    "country_code": ip_info["country_code"],
-                    "city": ip_info["city"],
-                    "isp": ip_info["isp"]
-                })
+                try:
+                    ip = parts[1]
+                    ip_info = get_ip_info(ip)
+                    attacker_list.append({
+                        "count": int(parts[0]),
+                        "ip": ip,
+                        "country": ip_info["country"],
+                        "country_code": ip_info["country_code"],
+                        "city": ip_info["city"],
+                        "isp": ip_info["isp"]
+                    })
+                except:
+                    pass
     
-    # If no current attackers, load from history using Python file ops
+    # Always load historical attackers when current list is empty
     historical_attackers = []
-    if not attacker_list:
+    if len(attacker_list) == 0:
         import glob
         hist_files = glob.glob("/host-logs/attack_history/ssh_attackers_*.log")
         for hist_file in hist_files:
