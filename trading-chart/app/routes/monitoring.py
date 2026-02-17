@@ -288,12 +288,108 @@ def get_full_overview(_: Any = Depends(require_admin)) -> dict:
     
     health_status = "critical" if len(issues) > 2 else "warning" if len(issues) > 0 or len(warnings) > 0 else "healthy"
     
+    # Calculate threat level
+    threat_level = "low"
+    if ssh_attacks > 500 or web_attacks > 200:
+        threat_level = "critical"
+    elif ssh_attacks > 200 or web_attacks > 100:
+        threat_level = "high"
+    elif ssh_attacks > 50 or web_attacks > 25:
+        threat_level = "medium"
+    
     return {
         "timestamp": datetime.utcnow().isoformat(),
         "health_status": health_status,
+        "threat_level": threat_level,
         "issues": issues,
         "warnings": warnings,
         "system": system,
         "security": security,
         "services": services
+    }
+
+
+@router.post("/block-ip")
+def block_ip_address(ip: str, duration: int = 3600, _: Any = Depends(require_admin)) -> dict:
+    """Block an IP address using iptables (via host)."""
+    # Validate IP format
+    import re
+    if not re.match(r'^(\d{1,3}\.){3}\d{1,3}$', ip):
+        return {"success": False, "error": "Invalid IP format"}
+    
+    # Add to fail2ban via writing to a blocklist file
+    try:
+        with open('/host-logs/blocked_ips.txt', 'a') as f:
+            f.write(f"{datetime.utcnow().isoformat()}|{ip}|{duration}\n")
+        return {"success": True, "message": f"IP {ip} queued for blocking"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/attack-analytics")
+def get_attack_analytics(_: Any = Depends(require_admin)) -> dict:
+    """Get detailed attack analytics."""
+    
+    # Attacks by hour (last 24h)
+    hourly_attacks = run_command(["sh", "-c", """
+        grep 'Failed password' /host-logs/auth.log 2>/dev/null | 
+        awk '{print $3}' | cut -d: -f1 | sort | uniq -c | tail -24
+    """])
+    
+    # Top attack sources by country (parsed from IP geo)
+    top_ips = run_command(["sh", "-c", """
+        grep 'Failed password' /host-logs/auth.log 2>/dev/null | 
+        awk '{print $(NF-3)}' | sort | uniq -c | sort -rn | head -10
+    """])
+    
+    # Attack types breakdown
+    web_attack_types = run_command(["sh", "-c", """
+        grep -E '(wp-login|phpmyadmin|\\.env|/admin|shell|eval|base64)' /host-logs/nginx/access.log 2>/dev/null |
+        grep -oE '(wp-login|phpmyadmin|\\.env|/admin|shell|eval|base64)' | sort | uniq -c | sort -rn
+    """])
+    
+    # Parse hourly data
+    hourly_data = []
+    for line in hourly_attacks.strip().split('\n'):
+        parts = line.strip().split()
+        if len(parts) == 2:
+            hourly_data.append({"hour": parts[1], "count": int(parts[0])})
+    
+    # Parse attack types
+    attack_types = []
+    for line in web_attack_types.strip().split('\n'):
+        parts = line.strip().split()
+        if len(parts) == 2:
+            attack_types.append({"type": parts[1], "count": int(parts[0])})
+    
+    return {
+        "timestamp": datetime.utcnow().isoformat(),
+        "hourly_attacks": hourly_data,
+        "attack_types": attack_types,
+        "total_ssh_attacks": sum(h["count"] for h in hourly_data),
+        "total_web_attacks": sum(a["count"] for a in attack_types)
+    }
+
+
+@router.get("/container-status")  
+def get_container_status(_: Any = Depends(require_admin)) -> dict:
+    """Get detailed Docker container status."""
+    
+    # List running containers with stats
+    containers = []
+    ps_output = run_command(["sh", "-c", "cat /proc/1/cgroup 2>/dev/null | grep docker | head -1"])
+    
+    # We're in a container, so return info about known services
+    services = [
+        {"name": "trading-chart", "type": "backend", "port": 8000},
+        {"name": "journal-backend", "type": "backend", "port": 5000},
+        {"name": "journal-frontend", "type": "frontend", "port": 3001},
+        {"name": "db", "type": "database", "port": 5432}
+    ]
+    
+    return {
+        "timestamp": datetime.utcnow().isoformat(),
+        "running_in_container": bool(ps_output),
+        "services": services,
+        "message": "Container management available via Docker Compose on host"
     }

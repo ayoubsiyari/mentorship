@@ -1229,6 +1229,7 @@ export default function Settings() {
         fetchLogs();
       } else if (activeAdminTab === 'health') {
         fetchSystemHealth();
+        fetchServerMonitoring();
       } else if (activeAdminTab === 'feature-flags') {
         // Refresh feature flags from backend
         try {
@@ -1981,14 +1982,36 @@ export default function Settings() {
                         <h3 className="text-lg font-bold text-white">Server Monitoring</h3>
                         <p className="text-sm text-gray-500">Real-time VPS health & security</p>
                       </div>
-                      <button
-                        onClick={() => { fetchSystemHealth(); fetchServerMonitoring(); }}
-                        disabled={serverMonitoringLoading}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50"
-                      >
-                        <RefreshCw className={`w-4 h-4 ${serverMonitoringLoading ? 'animate-spin' : ''}`} />
-                        Refresh
-                      </button>
+                      <div className="flex items-center gap-3">
+                        {/* Threat Level Indicator */}
+                        {serverMonitoring?.threat_level && (
+                          <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            serverMonitoring.threat_level === 'critical' ? 'bg-red-500/20 text-red-400 border border-red-500/50' :
+                            serverMonitoring.threat_level === 'high' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50' :
+                            serverMonitoring.threat_level === 'medium' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' :
+                            'bg-green-500/20 text-green-400 border border-green-500/50'
+                          }`}>
+                            🛡️ {serverMonitoring.threat_level.toUpperCase()}
+                          </div>
+                        )}
+                        {/* Auto-refresh toggle */}
+                        <button
+                          onClick={() => setAutoRefresh(!autoRefresh)}
+                          className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                            autoRefresh ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-gray-500/20 text-gray-400 border border-gray-500/50'
+                          }`}
+                        >
+                          {autoRefresh ? '⟳ Auto ON' : '⟳ Auto OFF'}
+                        </button>
+                        <button
+                          onClick={() => { fetchSystemHealth(); fetchServerMonitoring(); }}
+                          disabled={serverMonitoringLoading}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${serverMonitoringLoading ? 'animate-spin' : ''}`} />
+                          Refresh
+                        </button>
+                      </div>
                     </div>
 
                     {/* Overall Health Status */}
