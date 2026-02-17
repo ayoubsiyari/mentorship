@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Mail, Users, Send, CheckCircle, AlertCircle, Search, Trash2, RefreshCw, Eye, Bold, Italic, Underline as UnderlineIcon, Link2, Image, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Type } from 'lucide-react';
+import { Mail, Users, Send, CheckCircle, AlertCircle, Search, Trash2, RefreshCw, Eye, Bold, Italic, Underline as UnderlineIcon, Link2, Image, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Type, Maximize2, Minimize2 } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import UnderlineExtension from '@tiptap/extension-underline';
@@ -209,6 +209,7 @@ const NewsletterManager = () => {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [editorExpanded, setEditorExpanded] = useState(false);
 
   // Rich text editor
   const editor = useEditor({
@@ -464,12 +465,22 @@ const NewsletterManager = () => {
             </div>
             
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Content</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm text-gray-400">Content</label>
+                <button
+                  onClick={() => setEditorExpanded(!editorExpanded)}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white bg-[#0a1628] border border-[#2d4a6f] rounded hover:border-blue-500/50 transition-colors"
+                  title={editorExpanded ? 'Collapse' : 'Expand'}
+                >
+                  {editorExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+                  {editorExpanded ? 'Collapse' : 'Expand'}
+                </button>
+              </div>
               <div className="border border-[#2d4a6f] rounded-lg overflow-hidden">
                 <MenuBar editor={editor} />
                 <EditorContent 
                   editor={editor} 
-                  className="bg-[#0a1628] min-h-[200px] [&_.ProseMirror]:min-h-[200px] [&_.ProseMirror]:p-4 [&_.ProseMirror]:text-white [&_.ProseMirror]:focus:outline-none [&_.ProseMirror_p]:my-2 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_a]:text-blue-400 [&_.ProseMirror_a]:underline [&_.ProseMirror_img]:max-w-full [&_.ProseMirror_img]:h-auto [&_.ProseMirror_img]:rounded-lg"
+                  className={`bg-[#0a1628] transition-all duration-300 ${editorExpanded ? 'min-h-[500px] [&_.ProseMirror]:min-h-[500px]' : 'min-h-[200px] [&_.ProseMirror]:min-h-[200px]'} [&_.ProseMirror]:p-4 [&_.ProseMirror]:text-white [&_.ProseMirror]:focus:outline-none [&_.ProseMirror_p]:my-2 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_a]:text-blue-400 [&_.ProseMirror_a]:underline [&_.ProseMirror_img]:max-w-full [&_.ProseMirror_img]:h-auto [&_.ProseMirror_img]:rounded-lg`}
                 />
               </div>
             </div>
