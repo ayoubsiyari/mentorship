@@ -2032,12 +2032,24 @@ export default function Settings() {
                               <p className="text-xs text-gray-500">Updated: {new Date(serverMonitoring.timestamp).toLocaleTimeString()}</p>
                             </div>
                           </div>
-                          {serverMonitoring.issues?.length > 0 && (
+                          {(serverMonitoring.issues?.length > 0 || serverMonitoring.warnings?.length > 0) && (
                             <div className="text-right">
-                              <p className="text-sm font-semibold text-red-400">{serverMonitoring.issues.length} Issue(s)</p>
-                              {serverMonitoring.issues.map((issue, idx) => (
-                                <p key={idx} className="text-xs text-red-400">{issue}</p>
-                              ))}
+                              {serverMonitoring.issues?.length > 0 && (
+                                <>
+                                  <p className="text-sm font-semibold text-red-400">{serverMonitoring.issues.length} Issue(s)</p>
+                                  {serverMonitoring.issues.map((issue, idx) => (
+                                    <p key={idx} className="text-xs text-red-400">{issue}</p>
+                                  ))}
+                                </>
+                              )}
+                              {serverMonitoring.warnings?.length > 0 && (
+                                <>
+                                  <p className="text-sm font-semibold text-yellow-400">{serverMonitoring.warnings.length} Warning(s)</p>
+                                  {serverMonitoring.warnings.map((warning, idx) => (
+                                    <p key={idx} className="text-xs text-yellow-400">{warning}</p>
+                                  ))}
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
