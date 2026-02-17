@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 from ..deps import require_admin
 
-router = APIRouter(prefix="/admin/monitoring", tags=["monitoring"])
+router = APIRouter(prefix="/api/admin/monitoring", tags=["monitoring"])
 
 
 def run_command(cmd: list[str], timeout: int = 5) -> str:
