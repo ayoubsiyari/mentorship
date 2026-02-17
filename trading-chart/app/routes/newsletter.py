@@ -57,7 +57,18 @@ def subscribe_newsletter(
     if corrected:
         email = corrected
     
-    # Check if already subscribed
+    # Check if user exists in our database
+    user = db.execute(
+        select(User).where(User.email == email)
+    ).scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="يجب عليك التسجيل أولاً للاشتراك في النشرة الإخبارية"  # You must sign up first
+        )
+    
+    # Check if already subscribed to newsletter
     existing = db.execute(
         select(NewsletterSubscriber).where(NewsletterSubscriber.email == email)
     ).scalar_one_or_none()
@@ -65,7 +76,7 @@ def subscribe_newsletter(
     if existing:
         if existing.is_active:
             return SubscribeResponse(
-                success=True,
+                success=False,
                 message="أنت مشترك بالفعل في النشرة الإخبارية"  # Already subscribed
             )
         else:
@@ -83,7 +94,7 @@ def subscribe_newsletter(
     unsubscribe_token = secrets.token_urlsafe(32)
     subscriber = NewsletterSubscriber(
         email=email,
-        name=data.name,
+        name=data.name or user.name,
         source=data.source,
         unsubscribe_token=unsubscribe_token,
         is_active=True
