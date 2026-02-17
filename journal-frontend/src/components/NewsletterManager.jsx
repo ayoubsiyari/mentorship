@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Mail, Users, Send, CheckCircle, AlertCircle, Search, Trash2, RefreshCw, Eye, Bold, Italic, Underline as UnderlineIcon, Link2, Image, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Type, Maximize2, Minimize2, Code, FileText } from 'lucide-react';
+import { Mail, Users, Send, CheckCircle, AlertCircle, Search, Trash2, RefreshCw, Eye, Bold, Italic, Underline as UnderlineIcon, Link2, Image, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Type, Maximize2, Minimize2, Code, FileText, FolderOpen, Copy, X } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import UnderlineExtension from '@tiptap/extension-underline';
@@ -214,6 +214,10 @@ const NewsletterManager = () => {
   const [htmlContent, setHtmlContent] = useState('');
   const [sendMode, setSendMode] = useState('all'); // 'all' or 'test'
   const [testEmail, setTestEmail] = useState('');
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(null);
 
   // Rich text editor
   const editor = useEditor({
@@ -265,6 +269,57 @@ const NewsletterManager = () => {
   useEffect(() => {
     fetchSubscribers();
   }, [activeOnly]);
+
+  // Fetch gallery images
+  const fetchGallery = async () => {
+    setGalleryLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/newsletter/admin/gallery', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setGalleryImages(data.images || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch gallery:', err);
+    } finally {
+      setGalleryLoading(false);
+    }
+  };
+
+  // Copy image URL to clipboard
+  const copyImageUrl = async (url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedUrl(url);
+      setTimeout(() => setCopiedUrl(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  // Delete gallery image
+  const deleteGalleryImage = async (filename) => {
+    if (!window.confirm('Delete this image?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`/api/newsletter/admin/gallery/${filename}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      fetchGallery();
+    } catch (err) {
+      console.error('Failed to delete image:', err);
+    }
+  };
+
+  // Open gallery
+  const openGallery = () => {
+    setShowGallery(true);
+    fetchGallery();
+  };
 
   // Filter subscribers by search
   const filteredSubscribers = subscribers.filter(sub => 
@@ -503,6 +558,14 @@ const NewsletterManager = () => {
                     {editorExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
                     {editorExpanded ? 'Collapse' : 'Expand'}
                   </button>
+                  <button
+                    onClick={openGallery}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white bg-[#0a1628] border border-[#2d4a6f] rounded hover:border-blue-500/50 transition-colors"
+                    title="Image Gallery"
+                  >
+                    <FolderOpen className="w-3 h-3" />
+                    Gallery
+                  </button>
                 </div>
               </div>
               
@@ -609,6 +672,75 @@ const NewsletterManager = () => {
           </div>
         </div>
       </div>
+
+      {/* Image Gallery Modal */}
+      {showGallery && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0d1f35] rounded-2xl border border-[#1e3a5f] w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-[#1e3a5f]">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <FolderOpen className="w-5 h-5 text-blue-400" />
+                Image Gallery
+              </h3>
+              <button
+                onClick={() => setShowGallery(false)}
+                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 text-sm text-gray-400 bg-[#0a1628] border-b border-[#1e3a5f]">
+              Click <Copy className="w-3 h-3 inline" /> to copy image URL, then paste in HTML mode or use as <code className="bg-[#1e3a5f] px-1 rounded">&lt;img src="URL"&gt;</code>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {galleryLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-6 h-6 text-blue-400 animate-spin" />
+                </div>
+              ) : galleryImages.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <Image className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No images uploaded yet</p>
+                  <p className="text-sm mt-1">Upload images using the editor toolbar</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {galleryImages.map((img) => (
+                    <div key={img.filename} className="group relative bg-[#0a1628] rounded-lg overflow-hidden border border-[#2d4a6f]">
+                      <img
+                        src={img.url}
+                        alt={img.filename}
+                        className="w-full h-32 object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => copyImageUrl(img.url)}
+                          className={`p-2 rounded-lg transition-colors ${copiedUrl === img.url ? 'bg-emerald-500 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
+                          title="Copy URL"
+                        >
+                          {copiedUrl === img.url ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => deleteGalleryImage(img.filename)}
+                          className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="p-2 text-xs text-gray-400 truncate">
+                        {img.size_kb} KB
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

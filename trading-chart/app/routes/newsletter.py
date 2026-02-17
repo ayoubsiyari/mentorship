@@ -314,13 +314,47 @@ def list_subscribers(
 
 
 UPLOAD_DIR = "/app/uploads/newsletter"
+MAX_IMAGE_SIZE = 1200  # Max width/height in pixels
+MAX_FILE_SIZE_KB = 200  # Target max file size
+
+def compress_image(image_bytes: bytes, max_size: int = MAX_IMAGE_SIZE, quality: int = 85) -> bytes:
+    """Compress and resize image to optimize for email."""
+    from PIL import Image
+    import io
+    
+    img = Image.open(io.BytesIO(image_bytes))
+    
+    # Convert RGBA to RGB if needed (for JPEG)
+    if img.mode in ('RGBA', 'P'):
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        if img.mode == 'P':
+            img = img.convert('RGBA')
+        background.paste(img, mask=img.split()[3] if len(img.split()) > 3 else None)
+        img = background
+    
+    # Resize if too large
+    if img.width > max_size or img.height > max_size:
+        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+    
+    # Save with compression
+    output = io.BytesIO()
+    img.save(output, format='JPEG', quality=quality, optimize=True)
+    
+    # If still too large, reduce quality
+    while output.tell() > MAX_FILE_SIZE_KB * 1024 and quality > 40:
+        quality -= 10
+        output = io.BytesIO()
+        img.save(output, format='JPEG', quality=quality, optimize=True)
+    
+    return output.getvalue()
+
 
 @router.post("/admin/upload-image")
 async def upload_newsletter_image(
     file: UploadFile = File(...),
     admin: User = Depends(require_admin)
 ):
-    """Upload an image for newsletter content (admin only)."""
+    """Upload an image for newsletter content (admin only). Auto-compresses for email."""
     # Validate file type
     allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
     if file.content_type not in allowed_types:
@@ -329,18 +363,63 @@ async def upload_newsletter_image(
     # Create upload directory if it doesn't exist
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     
-    # Generate unique filename
-    ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
-    filename = f"{uuid.uuid4()}.{ext}"
+    # Read and compress image
+    contents = await file.read()
+    original_size = len(contents)
+    
+    # Compress image (always save as JPEG for consistency)
+    compressed = compress_image(contents)
+    compressed_size = len(compressed)
+    
+    # Generate unique filename (always .jpg after compression)
+    filename = f"{uuid.uuid4()}.jpg"
     filepath = os.path.join(UPLOAD_DIR, filename)
     
-    # Save file
-    contents = await file.read()
+    # Save compressed file
     with open(filepath, "wb") as f:
-        f.write(contents)
+        f.write(compressed)
     
-    # Return the URL
-    return {"url": f"https://talaria-log.com/api/newsletter/images/{filename}"}
+    # Return the URL with compression stats
+    return {
+        "url": f"https://talaria-log.com/api/newsletter/images/{filename}",
+        "filename": filename,
+        "original_size_kb": round(original_size / 1024, 1),
+        "compressed_size_kb": round(compressed_size / 1024, 1)
+    }
+
+
+@router.get("/admin/gallery")
+async def list_newsletter_images(admin: User = Depends(require_admin)):
+    """List all uploaded newsletter images for gallery."""
+    if not os.path.exists(UPLOAD_DIR):
+        return {"images": []}
+    
+    images = []
+    for filename in os.listdir(UPLOAD_DIR):
+        if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+            filepath = os.path.join(UPLOAD_DIR, filename)
+            stat = os.stat(filepath)
+            images.append({
+                "filename": filename,
+                "url": f"https://talaria-log.com/api/newsletter/images/{filename}",
+                "size_kb": round(stat.st_size / 1024, 1),
+                "created_at": stat.st_mtime
+            })
+    
+    # Sort by creation time, newest first
+    images.sort(key=lambda x: x["created_at"], reverse=True)
+    return {"images": images}
+
+
+@router.delete("/admin/gallery/{filename}")
+async def delete_newsletter_image(filename: str, admin: User = Depends(require_admin)):
+    """Delete an uploaded newsletter image."""
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    os.remove(filepath)
+    return {"success": True, "message": "Image deleted"}
 
 
 @router.get("/images/{filename}")
