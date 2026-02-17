@@ -219,6 +219,7 @@ const NewsletterManager = () => {
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(null);
   const [galleryUploading, setGalleryUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Rich text editor
   const editor = useEditor({
@@ -322,32 +323,46 @@ const NewsletterManager = () => {
     fetchGallery();
   };
 
-  // Upload image from gallery
-  const handleGalleryUpload = async (e) => {
+  // Upload image from gallery with progress
+  const handleGalleryUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setGalleryUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+    setUploadProgress(0);
 
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/newsletter/admin/upload-image', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('token');
 
-      if (response.ok) {
+    const xhr = new XMLHttpRequest();
+    
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percent);
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 200) {
         fetchGallery();
       }
-    } catch (error) {
-      console.error('Upload failed:', error);
-    } finally {
       setGalleryUploading(false);
+      setUploadProgress(0);
       e.target.value = '';
-    }
+    });
+
+    xhr.addEventListener('error', () => {
+      console.error('Upload failed');
+      setGalleryUploading(false);
+      setUploadProgress(0);
+      e.target.value = '';
+    });
+
+    xhr.open('POST', '/api/newsletter/admin/upload-image');
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.send(formData);
   };
 
   // Filter subscribers by search
@@ -739,6 +754,22 @@ const NewsletterManager = () => {
             <div className="p-4 text-sm text-gray-400 bg-[#0a1628] border-b border-[#1e3a5f]">
               Click <Copy className="w-3 h-3 inline" /> to copy image URL, then paste in HTML mode or use as <code className="bg-[#1e3a5f] px-1 rounded">&lt;img src="URL"&gt;</code>
             </div>
+
+            {/* Upload Progress Bar */}
+            {galleryUploading && (
+              <div className="px-4 py-3 bg-[#0a1628] border-b border-[#1e3a5f]">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2 bg-[#1e3a5f] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <span className="text-sm text-blue-400 font-medium min-w-[3rem]">{uploadProgress}%</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Uploading and compressing image...</p>
+              </div>
+            )}
 
             <div className="flex-1 overflow-y-auto p-4">
               {galleryLoading ? (
