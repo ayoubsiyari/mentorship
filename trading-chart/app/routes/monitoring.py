@@ -199,6 +199,28 @@ def get_security_status(_: Any = Depends(require_admin)) -> dict:
                     "isp": ip_info["isp"]
                 })
     
+    # If no current attackers, load from history
+    historical_attackers = []
+    if not attacker_list:
+        hist_data = run_command(["sh", "-c", "cat /host-logs/attack_history/ssh_attackers_*.log 2>/dev/null | head -10"])
+        for line in hist_data.strip().split("\n"):
+            parts = line.strip().split()
+            if len(parts) >= 2:
+                try:
+                    ip = parts[1]
+                    ip_info = get_ip_info(ip)
+                    historical_attackers.append({
+                        "count": int(parts[0]),
+                        "ip": ip,
+                        "country": ip_info["country"],
+                        "country_code": ip_info["country_code"],
+                        "city": ip_info["city"],
+                        "isp": ip_info["isp"],
+                        "historical": True
+                    })
+                except:
+                    pass
+    
     return {
         "timestamp": datetime.utcnow().isoformat(),
         "fail2ban": {
@@ -212,7 +234,7 @@ def get_security_status(_: Any = Depends(require_admin)) -> dict:
         "ssh_attacks": {
             "total_failed_attempts": int(failed_count) if failed_count.isdigit() else 0,
             "recent_attempts": failed_ssh.split("\n") if failed_ssh != "No data" else [],
-            "top_attackers": attacker_list[:5]
+            "top_attackers": attacker_list[:5] if attacker_list else historical_attackers[:10]
         },
         "web_attacks": {
             "suspicious_requests": int(web_attacks) if web_attacks.isdigit() else 0,
