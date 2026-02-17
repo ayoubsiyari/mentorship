@@ -2250,7 +2250,7 @@ export default function Settings() {
                               <h6 className="text-xs font-medium text-gray-400 mb-3">Top Attacking IPs</h6>
                               <div className="space-y-2">
                                 {serverMonitoring.security.ssh_attacks.top_attackers.map((attacker, idx) => (
-                                  <div key={idx} className="flex items-center justify-between text-sm py-1">
+                                  <div key={idx} className="flex items-center justify-between text-sm py-2 px-2 bg-[#0a1628]/50 rounded mb-1">
                                     <div className="flex items-center gap-2">
                                       {attacker.country_code && (
                                         <img 
@@ -2263,7 +2263,36 @@ export default function Settings() {
                                       <span className="text-white font-mono text-xs">{attacker.ip}</span>
                                       <span className="text-gray-500 text-xs">{attacker.country || ''}</span>
                                     </div>
-                                    <span className="text-red-400 font-medium">{attacker.count} attempts</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-xs font-bold px-2 py-0.5 rounded ${attacker.count > 50 ? 'bg-red-500/30 text-red-400' : attacker.count > 20 ? 'bg-yellow-500/30 text-yellow-400' : 'bg-gray-500/30 text-gray-300'}`}>
+                                        {attacker.count}
+                                      </span>
+                                      <button
+                                        onClick={async () => {
+                                          if (window.confirm(`Block IP ${attacker.ip} from ${attacker.country || 'Unknown'}?`)) {
+                                            try {
+                                              const res = await fetch(`${API_BASE_URL}/admin/monitoring/block-ip?ip=${attacker.ip}`, {
+                                                method: 'POST',
+                                                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                                              });
+                                              const data = await res.json();
+                                              if (data.success) {
+                                                alert(`✅ ${attacker.ip} blocked successfully!`);
+                                                fetchServerMonitoring();
+                                              } else {
+                                                alert(`❌ Failed: ${data.error}`);
+                                              }
+                                            } catch (e) {
+                                              alert(`❌ Error: ${e.message}`);
+                                            }
+                                          }
+                                        }}
+                                        className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs hover:bg-red-500/40 transition-colors"
+                                        title="Block this IP"
+                                      >
+                                        🚫 Block
+                                      </button>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
