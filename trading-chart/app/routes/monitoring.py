@@ -1,10 +1,42 @@
 import subprocess
 from datetime import datetime
 from typing import Any
+import httpx
+import asyncio
+from functools import lru_cache
 
 from fastapi import APIRouter, Depends
 
 from ..deps import require_admin
+
+
+# Cache for IP geolocation (avoid repeated API calls)
+_ip_cache: dict[str, dict] = {}
+
+
+def get_ip_info(ip: str) -> dict:
+    """Get geolocation info for an IP address using ip-api.com (free, no key needed)."""
+    if ip in _ip_cache:
+        return _ip_cache[ip]
+    
+    try:
+        with httpx.Client(timeout=2.0) as client:
+            resp = client.get(f"http://ip-api.com/json/{ip}?fields=status,country,countryCode,city,isp")
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("status") == "success":
+                    result = {
+                        "country": data.get("country", "Unknown"),
+                        "country_code": data.get("countryCode", "XX"),
+                        "city": data.get("city", ""),
+                        "isp": data.get("isp", "")
+                    }
+                    _ip_cache[ip] = result
+                    return result
+    except Exception:
+        pass
+    
+    return {"country": "Unknown", "country_code": "XX", "city": "", "isp": ""}
 
 router = APIRouter(prefix="/api/admin/monitoring", tags=["monitoring"])
 
@@ -119,13 +151,22 @@ def get_security_status(_: Any = Depends(require_admin)) -> dict:
     # Suspicious web attacks count
     web_attacks = run_command(["sh", "-c", "grep -E '(wp-login|phpmyadmin|\\.env|/admin|shell|eval|base64)' /host-logs/nginx/access.log 2>/dev/null | wc -l || echo '0'"])
     
-    # Parse top attackers
+    # Parse top attackers with geolocation
     attacker_list = []
     if top_attackers:
         for line in top_attackers.strip().split("\n"):
             parts = line.strip().split()
             if len(parts) >= 2:
-                attacker_list.append({"count": int(parts[0]), "ip": parts[1]})
+                ip = parts[1]
+                ip_info = get_ip_info(ip)
+                attacker_list.append({
+                    "count": int(parts[0]),
+                    "ip": ip,
+                    "country": ip_info["country"],
+                    "country_code": ip_info["country_code"],
+                    "city": ip_info["city"],
+                    "isp": ip_info["isp"]
+                })
     
     return {
         "timestamp": datetime.utcnow().isoformat(),
