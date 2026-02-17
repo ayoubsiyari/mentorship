@@ -134,22 +134,33 @@ def get_system_health(_: Any = Depends(require_admin)) -> dict:
 def get_security_status(_: Any = Depends(require_admin)) -> dict:
     """Get security status (Fail2Ban, blocked IPs, recent attacks)."""
     
-    # Fail2Ban status
-    fail2ban_status = run_command(["sh", "-c", "systemctl is-active fail2ban 2>/dev/null || echo 'not installed'"])
+    # Fail2Ban status - check via log file activity (works in Docker)
+    fail2ban_check = run_command(["sh", "-c", "find /host-logs/fail2ban.log -mmin -60 2>/dev/null | grep -q fail2ban && echo 'active' || echo 'inactive'"])
+    fail2ban_status = "active" if "active" in fail2ban_check else "inactive"
     
-    # Banned IPs from fail2ban
+    # Banned IPs from fail2ban - parse from log file
     banned_ips = []
     if fail2ban_status == "active":
-        banned_output = run_command(["sh", "-c", "fail2ban-client banned 2>/dev/null || echo '[]'"])
+        # Get currently banned IPs from fail2ban log (look for Ban entries without subsequent Unban)
+        banned_output = run_command(["sh", "-c", "grep -E 'Ban |Unban ' /host-logs/fail2ban.log 2>/dev/null | tail -100"])
         try:
-            import ast
-            banned_data = ast.literal_eval(banned_output)
-            if banned_data and isinstance(banned_data, list):
-                for jail in banned_data:
-                    if isinstance(jail, dict):
-                        for jail_name, ips in jail.items():
-                            for ip in ips:
-                                banned_ips.append({"ip": ip, "jail": jail_name})
+            # Track banned/unbanned IPs
+            ip_status = {}
+            for line in banned_output.split('\n'):
+                if ' Ban ' in line:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        ip = parts[-1]
+                        ip_status[ip] = 'banned'
+                elif ' Unban ' in line:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        ip = parts[-1]
+                        ip_status[ip] = 'unbanned'
+            # Get currently banned
+            for ip, status in ip_status.items():
+                if status == 'banned':
+                    banned_ips.append({"ip": ip, "jail": "sshd"})
         except:
             pass
     
