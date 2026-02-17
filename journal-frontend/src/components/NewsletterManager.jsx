@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Mail, Users, Send, CheckCircle, AlertCircle, Search, Trash2, RefreshCw, Eye, Bold, Italic, Underline as UnderlineIcon, Link2, Image, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Type, Maximize2, Minimize2 } from 'lucide-react';
+import { Mail, Users, Send, CheckCircle, AlertCircle, Search, Trash2, RefreshCw, Eye, Bold, Italic, Underline as UnderlineIcon, Link2, Image, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Type, Maximize2, Minimize2, Code, FileText } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import UnderlineExtension from '@tiptap/extension-underline';
@@ -210,6 +210,8 @@ const NewsletterManager = () => {
   const [result, setResult] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [editorExpanded, setEditorExpanded] = useState(false);
+  const [useHtmlMode, setUseHtmlMode] = useState(false);
+  const [htmlContent, setHtmlContent] = useState('');
 
   // Rich text editor
   const editor = useEditor({
@@ -231,8 +233,11 @@ const NewsletterManager = () => {
   });
 
   const getContent = useCallback(() => {
+    if (useHtmlMode) {
+      return htmlContent;
+    }
     return editor ? editor.getHTML() : '';
-  }, [editor]);
+  }, [editor, useHtmlMode, htmlContent]);
 
   // Fetch subscribers
   const fetchSubscribers = async () => {
@@ -318,6 +323,7 @@ const NewsletterManager = () => {
           message: data.message || `Sent to ${data.sent_count} subscribers`
         });
         setSubject('');
+        setHtmlContent('');
         editor?.commands.setContent('<p>اكتب محتوى النشرة هنا...</p>');
       } else {
         setResult({
@@ -467,22 +473,52 @@ const NewsletterManager = () => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm text-gray-400">Content</label>
-                <button
-                  onClick={() => setEditorExpanded(!editorExpanded)}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white bg-[#0a1628] border border-[#2d4a6f] rounded hover:border-blue-500/50 transition-colors"
-                  title={editorExpanded ? 'Collapse' : 'Expand'}
-                >
-                  {editorExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-                  {editorExpanded ? 'Collapse' : 'Expand'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-[#0a1628] border border-[#2d4a6f] rounded overflow-hidden">
+                    <button
+                      onClick={() => setUseHtmlMode(false)}
+                      className={`flex items-center gap-1 px-2 py-1 text-xs transition-colors ${!useHtmlMode ? 'bg-blue-500/30 text-blue-400' : 'text-gray-400 hover:text-white'}`}
+                      title="Rich Text Editor"
+                    >
+                      <FileText className="w-3 h-3" />
+                      Editor
+                    </button>
+                    <button
+                      onClick={() => setUseHtmlMode(true)}
+                      className={`flex items-center gap-1 px-2 py-1 text-xs transition-colors ${useHtmlMode ? 'bg-blue-500/30 text-blue-400' : 'text-gray-400 hover:text-white'}`}
+                      title="HTML Code"
+                    >
+                      <Code className="w-3 h-3" />
+                      HTML
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setEditorExpanded(!editorExpanded)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white bg-[#0a1628] border border-[#2d4a6f] rounded hover:border-blue-500/50 transition-colors"
+                    title={editorExpanded ? 'Collapse' : 'Expand'}
+                  >
+                    {editorExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+                    {editorExpanded ? 'Collapse' : 'Expand'}
+                  </button>
+                </div>
               </div>
-              <div className="border border-[#2d4a6f] rounded-lg overflow-hidden">
-                <MenuBar editor={editor} />
-                <EditorContent 
-                  editor={editor} 
-                  className={`bg-[#0a1628] transition-all duration-300 ${editorExpanded ? 'min-h-[500px] [&_.ProseMirror]:min-h-[500px]' : 'min-h-[200px] [&_.ProseMirror]:min-h-[200px]'} [&_.ProseMirror]:p-4 [&_.ProseMirror]:text-white [&_.ProseMirror]:focus:outline-none [&_.ProseMirror_p]:my-2 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_a]:text-blue-400 [&_.ProseMirror_a]:underline [&_.ProseMirror_img]:max-w-full [&_.ProseMirror_img]:h-auto [&_.ProseMirror_img]:rounded-lg`}
+              
+              {useHtmlMode ? (
+                <textarea
+                  value={htmlContent}
+                  onChange={(e) => setHtmlContent(e.target.value)}
+                  placeholder="<p>Enter your HTML content here...</p>"
+                  className={`w-full bg-[#0a1628] border border-[#2d4a6f] rounded-lg p-4 text-white font-mono text-sm focus:outline-none focus:border-blue-500/50 resize-none transition-all duration-300 ${editorExpanded ? 'min-h-[500px]' : 'min-h-[200px]'}`}
                 />
-              </div>
+              ) : (
+                <div className="border border-[#2d4a6f] rounded-lg overflow-hidden">
+                  <MenuBar editor={editor} />
+                  <EditorContent 
+                    editor={editor} 
+                    className={`bg-[#0a1628] transition-all duration-300 ${editorExpanded ? 'min-h-[500px] [&_.ProseMirror]:min-h-[500px]' : 'min-h-[200px] [&_.ProseMirror]:min-h-[200px]'} [&_.ProseMirror]:p-4 [&_.ProseMirror]:text-white [&_.ProseMirror]:focus:outline-none [&_.ProseMirror_p]:my-2 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_a]:text-blue-400 [&_.ProseMirror_a]:underline [&_.ProseMirror_img]:max-w-full [&_.ProseMirror_img]:h-auto [&_.ProseMirror_img]:rounded-lg`}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
