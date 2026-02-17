@@ -38,6 +38,7 @@ services:
     volumes:
       - ./secrets:/run/secrets:ro
       - newsletter_uploads:/app/uploads/newsletter
+      - /var/log:/host-logs:ro
     ports:
       - "8001:8000"
     depends_on:

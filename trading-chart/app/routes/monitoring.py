@@ -101,27 +101,51 @@ def get_security_status(_: Any = Depends(require_admin)) -> dict:
         except:
             pass
     
-    # Recent failed SSH attempts
-    failed_ssh = run_command(["sh", "-c", "grep 'Failed password' /var/log/auth.log 2>/dev/null | tail -5 | awk '{print $1, $2, $3, $11}' || echo 'No data'"])
+    # Recent failed SSH attempts (from host logs mounted at /host-logs)
+    failed_ssh = run_command(["sh", "-c", "grep 'Failed password' /host-logs/auth.log 2>/dev/null | tail -10 | awk '{print $1, $2, $3, $11}' || echo 'No data'"])
+    
+    # Total failed attempts count
+    failed_count = run_command(["sh", "-c", "grep -c 'Failed password' /host-logs/auth.log 2>/dev/null || echo '0'"])
+    
+    # Top attacking IPs
+    top_attackers = run_command(["sh", "-c", "grep 'Failed password' /host-logs/auth.log 2>/dev/null | awk '{print $(NF-3)}' | sort | uniq -c | sort -rn | head -5 || echo ''"])
     
     # UFW status
     ufw_status = run_command(["sh", "-c", "ufw status 2>/dev/null | head -1 || echo 'not installed'"])
     
-    # Recent 4xx/5xx errors count
-    error_count = run_command(["sh", "-c", "grep -a ' 4[0-9][0-9] \\| 5[0-9][0-9] ' /var/log/nginx/access.log 2>/dev/null | wc -l || echo '0'"])
+    # Recent 4xx/5xx errors count (from host nginx logs)
+    error_count = run_command(["sh", "-c", "grep -a ' 4[0-9][0-9] \\| 5[0-9][0-9] ' /host-logs/nginx/access.log 2>/dev/null | wc -l || echo '0'"])
+    
+    # Suspicious web attacks count
+    web_attacks = run_command(["sh", "-c", "grep -E '(wp-login|phpmyadmin|\\.env|/admin|shell|eval|base64)' /host-logs/nginx/access.log 2>/dev/null | wc -l || echo '0'"])
+    
+    # Parse top attackers
+    attacker_list = []
+    if top_attackers:
+        for line in top_attackers.strip().split("\n"):
+            parts = line.strip().split()
+            if len(parts) >= 2:
+                attacker_list.append({"count": int(parts[0]), "ip": parts[1]})
     
     return {
         "timestamp": datetime.utcnow().isoformat(),
         "fail2ban": {
             "status": fail2ban_status,
             "banned_count": len(banned_ips),
-            "banned_ips": banned_ips[:10]  # Limit to 10
+            "banned_ips": banned_ips[:10]
         },
         "firewall": {
             "ufw_status": ufw_status
         },
-        "recent_failed_ssh": failed_ssh.split("\n") if failed_ssh != "No data" else [],
-        "nginx_errors_today": int(error_count) if error_count.isdigit() else 0
+        "ssh_attacks": {
+            "total_failed_attempts": int(failed_count) if failed_count.isdigit() else 0,
+            "recent_attempts": failed_ssh.split("\n") if failed_ssh != "No data" else [],
+            "top_attackers": attacker_list[:5]
+        },
+        "web_attacks": {
+            "suspicious_requests": int(web_attacks) if web_attacks.isdigit() else 0,
+            "nginx_errors": int(error_count) if error_count.isdigit() else 0
+        }
     }
 
 
@@ -159,6 +183,8 @@ def get_full_overview(_: Any = Depends(require_admin)) -> dict:
     
     # Calculate overall health score
     issues = []
+    warnings = []
+    
     if system["cpu"]["status"] == "critical":
         issues.append("High CPU usage")
     if system["memory"]["status"] == "critical":
@@ -172,12 +198,22 @@ def get_full_overview(_: Any = Depends(require_admin)) -> dict:
         if svc["name"] in ["nginx", "docker"] and not svc["ok"]:
             issues.append(f"{svc['name']} is down")
     
-    health_status = "critical" if len(issues) > 2 else "warning" if len(issues) > 0 else "healthy"
+    # Security warnings (not critical but should be noted)
+    ssh_attacks = security.get("ssh_attacks", {}).get("total_failed_attempts", 0)
+    web_attacks = security.get("web_attacks", {}).get("suspicious_requests", 0)
+    
+    if ssh_attacks > 100:
+        warnings.append(f"{ssh_attacks} SSH brute force attempts detected")
+    if web_attacks > 50:
+        warnings.append(f"{web_attacks} suspicious web requests detected")
+    
+    health_status = "critical" if len(issues) > 2 else "warning" if len(issues) > 0 or len(warnings) > 0 else "healthy"
     
     return {
         "timestamp": datetime.utcnow().isoformat(),
         "health_status": health_status,
         "issues": issues,
+        "warnings": warnings,
         "system": system,
         "security": security,
         "services": services
