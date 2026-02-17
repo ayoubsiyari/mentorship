@@ -199,28 +199,34 @@ def get_security_status(_: Any = Depends(require_admin)) -> dict:
                     "isp": ip_info["isp"]
                 })
     
-    # If no current attackers, load from history
+    # If no current attackers, load from history using Python file ops
     historical_attackers = []
     if not attacker_list:
-        hist_data = run_command(["sh", "-c", "cat /host-logs/attack_history/ssh_attackers_*.log 2>/dev/null | head -10"])
-        for line in hist_data.strip().split("\n"):
-            parts = line.strip().split()  # strip() removes leading/trailing whitespace
-            if len(parts) >= 2:
-                try:
-                    count = int(parts[0])
-                    ip = parts[1]
-                    ip_info = get_ip_info(ip)
-                    historical_attackers.append({
-                        "count": count,
-                        "ip": ip,
-                        "country": ip_info["country"],
-                        "country_code": ip_info["country_code"],
-                        "city": ip_info["city"],
-                        "isp": ip_info["isp"],
-                        "historical": True
-                    })
-                except ValueError:
-                    pass
+        import glob
+        hist_files = glob.glob("/host-logs/attack_history/ssh_attackers_*.log")
+        for hist_file in hist_files:
+            try:
+                with open(hist_file, 'r') as f:
+                    for line in f.readlines()[:10]:
+                        parts = line.strip().split()
+                        if len(parts) >= 2:
+                            try:
+                                count = int(parts[0])
+                                ip = parts[1]
+                                ip_info = get_ip_info(ip)
+                                historical_attackers.append({
+                                    "count": count,
+                                    "ip": ip,
+                                    "country": ip_info["country"],
+                                    "country_code": ip_info["country_code"],
+                                    "city": ip_info["city"],
+                                    "isp": ip_info["isp"],
+                                    "historical": True
+                                })
+                            except ValueError:
+                                pass
+            except:
+                pass
     
     return {
         "timestamp": datetime.utcnow().isoformat(),
