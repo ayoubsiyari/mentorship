@@ -204,13 +204,14 @@ def get_security_status(_: Any = Depends(require_admin)) -> dict:
     if not attacker_list:
         hist_data = run_command(["sh", "-c", "cat /host-logs/attack_history/ssh_attackers_*.log 2>/dev/null | head -10"])
         for line in hist_data.strip().split("\n"):
-            parts = line.strip().split()
+            parts = line.strip().split()  # strip() removes leading/trailing whitespace
             if len(parts) >= 2:
                 try:
+                    count = int(parts[0])
                     ip = parts[1]
                     ip_info = get_ip_info(ip)
                     historical_attackers.append({
-                        "count": int(parts[0]),
+                        "count": count,
                         "ip": ip,
                         "country": ip_info["country"],
                         "country_code": ip_info["country_code"],
@@ -218,7 +219,7 @@ def get_security_status(_: Any = Depends(require_admin)) -> dict:
                         "isp": ip_info["isp"],
                         "historical": True
                     })
-                except:
+                except ValueError:
                     pass
     
     return {
