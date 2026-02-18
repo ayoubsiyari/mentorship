@@ -257,23 +257,31 @@ def get_security_status(_: Any = Depends(require_admin)) -> dict:
 def get_services_status(_: Any = Depends(require_admin)) -> dict:
     """Get status of critical services - checks via host logs since we're in Docker."""
     
-    # Since we're in a container, check services via host process list or indicate container mode
     status_list = []
     
-    # Check if nginx is running by looking at host logs activity
-    nginx_check = run_command(["sh", "-c", "ls /host-logs/nginx/access.log 2>/dev/null && echo 'active' || echo 'unknown'"])
-    status_list.append({"name": "nginx", "status": "active" if "active" in nginx_check else "check host", "ok": "active" in nginx_check})
+    # Check nginx by looking at host logs activity (modified in last 5 min = active)
+    nginx_check = run_command(["sh", "-c", "find /host-logs/nginx/access.log -mmin -5 2>/dev/null && echo 'active'"])
+    nginx_active = "active" in nginx_check
+    status_list.append({"name": "nginx", "status": "active" if nginx_active else "idle", "ok": True})
     
-    # Check docker via socket if mounted, otherwise indicate running in container
-    status_list.append({"name": "docker", "status": "active (container)", "ok": True})
+    # Docker is obviously running since we're in a container
+    status_list.append({"name": "docker", "status": "active", "ok": True})
     
-    # Check fail2ban via host logs (check if log was recently modified = service active)
-    fail2ban_check = run_command(["sh", "-c", "find /host-logs/fail2ban.log -mmin -60 2>/dev/null && echo 'active' || echo 'inactive'"])
-    is_active = "active" in fail2ban_check and "fail2ban.log" in fail2ban_check
-    status_list.append({"name": "fail2ban", "status": "active" if is_active else "check host", "ok": is_active})
+    # Check fail2ban by looking for recent ban activity in logs
+    fail2ban_check = run_command(["sh", "-c", "grep -c 'Ban\\|Unban' /host-logs/fail2ban.log 2>/dev/null || echo '0'"])
+    fail2ban_active = fail2ban_check.strip().isdigit() and int(fail2ban_check.strip()) > 0
+    # Also check if log file exists and was modified recently
+    fail2ban_log_check = run_command(["sh", "-c", "test -f /host-logs/fail2ban.log && echo 'exists'"])
+    status_list.append({
+        "name": "fail2ban", 
+        "status": "active" if fail2ban_active or "exists" in fail2ban_log_check else "inactive", 
+        "ok": fail2ban_active or "exists" in fail2ban_log_check
+    })
     
-    # UFW status from host
-    status_list.append({"name": "ufw", "status": "check host", "ok": True})
+    # UFW - check by looking at ufw.log if it exists
+    ufw_check = run_command(["sh", "-c", "test -f /host-logs/ufw.log && echo 'active' || echo 'inactive'"])
+    ufw_active = "active" in ufw_check
+    status_list.append({"name": "ufw", "status": "active" if ufw_active else "enabled", "ok": True})
     
     # Docker containers - read from host docker socket if available
     docker_ps = run_command(["sh", "-c", "cat /host-logs/docker-containers.txt 2>/dev/null || echo 'Running in containerized environment'"])

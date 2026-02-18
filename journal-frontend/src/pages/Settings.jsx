@@ -2047,10 +2047,10 @@ export default function Settings() {
                     {/* Sub-tabs Navigation */}
                     <div className="flex gap-1 bg-[#0a1628] p-1 rounded-lg border border-[#2d4a6f]">
                       {[
-                        { id: 'overview', label: '📊 Overview', icon: Activity },
-                        { id: 'security', label: '🛡️ Security', icon: Shield },
-                        { id: 'services', label: '🐳 Services', icon: Server },
-                        { id: 'controls', label: '⚙️ Controls', icon: SettingsIcon }
+                        { id: 'overview', label: 'Overview', icon: Activity },
+                        { id: 'security', label: 'Security', icon: Shield },
+                        { id: 'services', label: 'Services', icon: Server },
+                        { id: 'controls', label: 'Controls', icon: SettingsIcon }
                       ].map(tab => (
                         <button
                           key={tab.id}
