@@ -782,9 +782,15 @@ def run_security_audit(_: Any = Depends(require_admin)) -> dict:
         "recommendation": "Use SSH keys instead of passwords"
     })
     
-    # 2. Firewall Status
-    ufw_status = run_command(["sh", "-c", "ufw status 2>/dev/null | head -1"])
-    firewall_active = "active" in ufw_status.lower() if ufw_status else False
+    # 2. Firewall Status - check iptables rules count (works inside container)
+    iptables_rules = run_command(["sh", "-c", "cat /proc/net/ip_tables_names 2>/dev/null && iptables -L -n 2>/dev/null | wc -l || echo '0'"])
+    # If more than 10 rules, firewall is likely active
+    rule_count = 0
+    try:
+        rule_count = int(iptables_rules.strip().split('\n')[-1]) if iptables_rules else 0
+    except:
+        pass
+    firewall_active = rule_count > 10
     checks.append({
         "name": "Firewall Active",
         "status": "pass" if firewall_active else "fail",

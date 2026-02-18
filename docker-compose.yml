@@ -39,6 +39,8 @@ services:
       - ./secrets:/run/secrets:ro
       - newsletter_uploads:/app/uploads/newsletter
       - /var/log:/host-logs
+      - /etc/ssh/sshd_config:/etc/ssh/sshd_config:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
       - "8001:8000"
     depends_on:
