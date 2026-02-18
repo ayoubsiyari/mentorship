@@ -2047,10 +2047,10 @@ export default function Settings() {
                     {/* Sub-tabs Navigation */}
                     <div className="flex gap-1 bg-[#0a1628] p-1 rounded-lg border border-[#2d4a6f]">
                       {[
-                        { id: 'overview', label: 'Overview', icon: Activity },
-                        { id: 'security', label: 'Security', icon: Shield },
-                        { id: 'services', label: 'Services', icon: Server },
-                        { id: 'controls', label: 'Controls', icon: SettingsIcon }
+                        { id: 'overview', label: '📊 Overview', icon: Activity },
+                        { id: 'security', label: '🛡️ Security', icon: Shield },
+                        { id: 'services', label: '🐳 Services', icon: Server },
+                        { id: 'attackmap', label: '🗺️ Attack Map', icon: Globe }
                       ].map(tab => (
                         <button
                           key={tab.id}
@@ -2064,8 +2064,104 @@ export default function Settings() {
                       ))}
                     </div>
 
-                    {/* Overall Health Status */}
-                    {serverMonitoring && (
+                    {/* Security Score Card */}
+                    {serverMonitoring?.security_score && (
+                      <div className="bg-gradient-to-br from-[#0a1628] to-[#1e3a5f] rounded-xl p-5 border border-[#2d4a6f]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-6">
+                            <div className={`relative w-20 h-20 rounded-full flex items-center justify-center border-4 ${
+                              serverMonitoring.security_score.grade === 'A' ? 'bg-green-500/20 border-green-500' :
+                              serverMonitoring.security_score.grade === 'B' ? 'bg-blue-500/20 border-blue-500' :
+                              serverMonitoring.security_score.grade === 'C' ? 'bg-yellow-500/20 border-yellow-500' :
+                              serverMonitoring.security_score.grade === 'D' ? 'bg-orange-500/20 border-orange-500' :
+                              'bg-red-500/20 border-red-500'
+                            }`}>
+                              <div className="text-center">
+                                <span className={`text-3xl font-black ${
+                                  serverMonitoring.security_score.grade === 'A' ? 'text-green-400' :
+                                  serverMonitoring.security_score.grade === 'B' ? 'text-blue-400' :
+                                  serverMonitoring.security_score.grade === 'C' ? 'text-yellow-400' :
+                                  serverMonitoring.security_score.grade === 'D' ? 'text-orange-400' :
+                                  'text-red-400'
+                                }`}>{serverMonitoring.security_score.grade}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <h4 className="text-lg font-bold text-white">Security Score</h4>
+                              <p className="text-2xl font-bold text-gray-300">{serverMonitoring.security_score.score}/100</p>
+                            </div>
+                          </div>
+                          <div className="flex-1 max-w-sm ml-6 space-y-1">
+                            {serverMonitoring.security_score.factors?.slice(0, 3).map((f, idx) => (
+                              <div key={idx} className={`flex items-center justify-between text-xs px-2 py-1 rounded ${
+                                f.type === 'positive' ? 'bg-green-500/10 text-green-400' :
+                                f.type === 'warning' ? 'bg-yellow-500/10 text-yellow-400' :
+                                'bg-red-500/10 text-red-400'
+                              }`}>
+                                <span className="truncate">{f.factor}</span>
+                                <span className="font-bold ml-2">{f.impact > 0 ? '+' : ''}{f.impact}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Attack Map Tab */}
+                    {healthSubTab === 'attackmap' && serverMonitoring?.security?.ssh_attacks?.top_attackers && (
+                      <div className="bg-[#0a1628] rounded-xl p-5 border border-[#2d4a6f]">
+                        <h4 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-red-400" />
+                          Live Attack Origins
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {serverMonitoring.security.ssh_attacks.top_attackers.map((attacker, idx) => (
+                            <div key={idx} className="bg-[#1e3a5f]/50 rounded-lg p-3 border border-red-500/20 hover:border-red-500/50 transition-all">
+                              <div className="flex items-center gap-2 mb-2">
+                                {attacker.country_code && (
+                                  <img src={`https://flagcdn.com/20x15/${attacker.country_code.toLowerCase()}.png`} alt="" className="w-5 h-4" onError={(e) => e.target.style.display = 'none'} />
+                                )}
+                                <span className="text-white font-medium text-sm">{attacker.country || 'Unknown'}</span>
+                                <span className="ml-auto text-red-400 font-bold">{attacker.count}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-400 font-mono">{attacker.ip}</span>
+                                <button
+                                  onClick={async () => {
+                                    if (window.confirm(`Block ${attacker.ip}?`)) {
+                                      const res = await fetch(`${API_BASE_URL}/admin/monitoring/block-ip?ip=${attacker.ip}`, {
+                                        method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                                      });
+                                      const data = await res.json();
+                                      alert(data.success ? 'Blocked!' : data.error);
+                                      fetchServerMonitoring();
+                                    }
+                                  }}
+                                  className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded text-xs hover:bg-red-500/40"
+                                >Block</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 mt-4">
+                          <div className="bg-red-500/10 rounded-lg p-3 text-center border border-red-500/30">
+                            <p className="text-2xl font-bold text-red-400">{serverMonitoring.security.ssh_attacks.total_failed_attempts || 0}</p>
+                            <p className="text-xs text-gray-400">SSH Attacks</p>
+                          </div>
+                          <div className="bg-yellow-500/10 rounded-lg p-3 text-center border border-yellow-500/30">
+                            <p className="text-2xl font-bold text-yellow-400">{serverMonitoring.security.web_attacks?.suspicious_requests || 0}</p>
+                            <p className="text-xs text-gray-400">Web Attacks</p>
+                          </div>
+                          <div className="bg-green-500/10 rounded-lg p-3 text-center border border-green-500/30">
+                            <p className="text-2xl font-bold text-green-400">{serverMonitoring.security.fail2ban?.banned_count || 0}</p>
+                            <p className="text-xs text-gray-400">Blocked</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Overview Tab - Health Status */}
+                    {healthSubTab === 'overview' && serverMonitoring && (
                       <div className={`rounded-lg p-4 border ${
                         serverMonitoring.health_status === 'healthy' ? 'bg-green-500/10 border-green-500/30' :
                         serverMonitoring.health_status === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30' :

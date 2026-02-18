@@ -293,12 +293,97 @@ def get_services_status(_: Any = Depends(require_admin)) -> dict:
     }
 
 
+def calculate_security_score(system: dict, security: dict, services: dict) -> dict:
+    """Calculate security score from A to F based on current posture."""
+    score = 100
+    factors = []
+    
+    # System factors (max -20)
+    cpu = system.get("cpu", {}).get("percent", 0)
+    memory = system.get("memory", {}).get("percent", 0)
+    disk = int(str(system.get("disk", {}).get("percent", "0")).replace("%", "") or 0)
+    
+    if cpu > 90:
+        score -= 10
+        factors.append({"factor": "High CPU usage", "impact": -10, "type": "warning"})
+    if memory > 90:
+        score -= 10
+        factors.append({"factor": "High memory usage", "impact": -10, "type": "warning"})
+    if disk > 90:
+        score -= 10
+        factors.append({"factor": "Low disk space", "impact": -10, "type": "critical"})
+    
+    # Security factors (max -40)
+    ssh_attacks = security.get("ssh_attacks", {}).get("total_failed_attempts", 0)
+    web_attacks = security.get("web_attacks", {}).get("suspicious_requests", 0)
+    fail2ban_banned = security.get("fail2ban", {}).get("banned_count", 0)
+    
+    if ssh_attacks > 500:
+        score -= 20
+        factors.append({"factor": f"{ssh_attacks} SSH attacks detected", "impact": -20, "type": "critical"})
+    elif ssh_attacks > 100:
+        score -= 10
+        factors.append({"factor": f"{ssh_attacks} SSH attacks detected", "impact": -10, "type": "warning"})
+    
+    if web_attacks > 200:
+        score -= 15
+        factors.append({"factor": f"{web_attacks} suspicious web requests", "impact": -15, "type": "critical"})
+    elif web_attacks > 50:
+        score -= 5
+        factors.append({"factor": f"{web_attacks} suspicious web requests", "impact": -5, "type": "warning"})
+    
+    # Positive factors
+    if fail2ban_banned > 0:
+        score += 5
+        factors.append({"factor": f"Fail2Ban active ({fail2ban_banned} IPs blocked)", "impact": +5, "type": "positive"})
+    
+    if security.get("fail2ban", {}).get("status") == "active":
+        score += 5
+        factors.append({"factor": "Fail2Ban protection active", "impact": +5, "type": "positive"})
+    
+    # Services factors (max -20)
+    for svc in services.get("services", []):
+        if not svc.get("ok", True) and svc.get("name") in ["nginx", "fail2ban"]:
+            score -= 15
+            factors.append({"factor": f"{svc['name']} service down", "impact": -15, "type": "critical"})
+    
+    # Cap score
+    score = max(0, min(100, score))
+    
+    # Grade calculation
+    if score >= 90:
+        grade = "A"
+        grade_color = "green"
+    elif score >= 80:
+        grade = "B"
+        grade_color = "blue"
+    elif score >= 70:
+        grade = "C"
+        grade_color = "yellow"
+    elif score >= 60:
+        grade = "D"
+        grade_color = "orange"
+    else:
+        grade = "F"
+        grade_color = "red"
+    
+    return {
+        "score": score,
+        "grade": grade,
+        "grade_color": grade_color,
+        "factors": factors
+    }
+
+
 @router.get("/overview")
 def get_full_overview(_: Any = Depends(require_admin)) -> dict:
     """Get complete server overview - combines all metrics."""
     system = get_system_health(_)
     security = get_security_status(_)
     services = get_services_status(_)
+    
+    # Calculate security score
+    security_score = calculate_security_score(system, security, services)
     
     # Calculate overall health score
     issues = []
@@ -341,6 +426,7 @@ def get_full_overview(_: Any = Depends(require_admin)) -> dict:
         "timestamp": datetime.utcnow().isoformat(),
         "health_status": health_status,
         "threat_level": threat_level,
+        "security_score": security_score,
         "issues": issues,
         "warnings": warnings,
         "system": system,
