@@ -2666,6 +2666,85 @@ export default function Settings() {
                       </div>
                     )}
 
+
+                    {/* Intrusion Detection Tab */}
+                    {healthSubTab === 'intrusion' && (
+                      <div className="space-y-6">
+                        {!intrusionData && !securityAudit ? (
+                          <div className="text-center py-8">
+                            <button onClick={fetchIntrusionDetection} disabled={intrusionLoading} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 mx-auto">
+                              {intrusionLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                              {intrusionLoading ? 'Scanning...' : 'Run Security Scan'}
+                            </button>
+                            <p className="text-gray-500 text-sm mt-2">Scan for signs of intrusion or compromise</p>
+                          </div>
+                        ) : (
+                          <React.Fragment>
+                            {intrusionData && (
+                              <div className={`rounded-xl p-5 flex items-center justify-between ${intrusionData.risk_level === 'low' ? 'bg-emerald-500/10 ring-1 ring-emerald-500/20' : intrusionData.risk_level === 'medium' ? 'bg-amber-500/10 ring-1 ring-amber-500/20' : 'bg-red-500/10 ring-1 ring-red-500/20'}`}>
+                                <div className="flex items-center gap-4">
+                                  <Shield className={`w-8 h-8 ${intrusionData.risk_level === 'low' ? 'text-emerald-400' : intrusionData.risk_level === 'medium' ? 'text-amber-400' : 'text-red-400'}`} />
+                                  <div>
+                                    <p className={`text-lg font-semibold ${intrusionData.risk_level === 'low' ? 'text-emerald-400' : intrusionData.risk_level === 'medium' ? 'text-amber-400' : 'text-red-400'}`}>
+                                      {intrusionData.risk_level === 'low' ? 'No Threats Detected' : intrusionData.risk_level === 'medium' ? 'Potential Issues' : 'Critical Alerts!'}
+                                    </p>
+                                    <p className="text-sm text-gray-500">{intrusionData.alerts?.length || 0} alerts · {intrusionData.checks_performed?.length || 0} checks</p>
+                                  </div>
+                                </div>
+                                <button onClick={fetchIntrusionDetection} disabled={intrusionLoading} className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20">
+                                  <RefreshCw className={`w-4 h-4 ${intrusionLoading ? 'animate-spin' : ''}`} />
+                                </button>
+                              </div>
+                            )}
+                            {intrusionData?.alerts?.length > 0 && (
+                              <div className="bg-[#0a1628] rounded-xl p-5 border border-red-500/30">
+                                <h4 className="text-sm font-medium text-red-400 mb-4">Security Alerts ({intrusionData.alerts.length})</h4>
+                                <div className="space-y-3">
+                                  {intrusionData.alerts.map((alert, idx) => (
+                                    <div key={idx} className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                                      <p className="font-medium text-red-400">{alert.message}</p>
+                                      <p className="text-xs text-gray-500 mt-1">Severity: {alert.severity}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {securityAudit && (
+                              <div className="bg-[#0a1628] rounded-xl p-5 border border-[#2d4a6f]">
+                                <div className="flex items-center justify-between mb-4">
+                                  <h4 className="text-sm font-medium text-white">Security Audit</h4>
+                                  <span className={`px-3 py-1 rounded-lg font-bold ${securityAudit.grade === 'A' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                                    {securityAudit.grade} ({securityAudit.score}/100)
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 mb-4">
+                                  <div className="bg-emerald-500/10 rounded-lg p-3 text-center">
+                                    <p className="text-2xl font-bold text-emerald-400">{securityAudit.passed}</p>
+                                    <p className="text-xs text-gray-400">Passed</p>
+                                  </div>
+                                  <div className="bg-amber-500/10 rounded-lg p-3 text-center">
+                                    <p className="text-2xl font-bold text-amber-400">{securityAudit.warnings}</p>
+                                    <p className="text-xs text-gray-400">Warnings</p>
+                                  </div>
+                                  <div className="bg-red-500/10 rounded-lg p-3 text-center">
+                                    <p className="text-2xl font-bold text-red-400">{securityAudit.failed}</p>
+                                    <p className="text-xs text-gray-400">Failed</p>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  {securityAudit.checks?.map((check, idx) => (
+                                    <div key={idx} className={`flex items-center justify-between p-3 rounded-lg ${check.status === 'pass' ? 'bg-emerald-500/5' : 'bg-red-500/5'}`}>
+                                      <span className="text-sm text-white">{check.name}</span>
+                                      <span className={`text-xs ${check.status === 'pass' ? 'text-emerald-400' : 'text-red-400'}`}>{check.status}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </React.Fragment>
+                        )}
+                      </div>
+                    )}
                     {/* Loading/Empty State */}
                     {!serverMonitoring && !systemHealth && (
                       <div className="text-center py-16">
