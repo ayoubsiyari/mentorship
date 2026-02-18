@@ -1977,70 +1977,124 @@ export default function Settings() {
 
                 {/* System Health Tab */}
                 {activeAdminTab === 'health' && (
-                  <div className="space-y-4">
-                    {/* Header with Quick Stats */}
-                    <div className="bg-gradient-to-r from-[#0a1628] to-[#1e3a5f] rounded-xl p-4 border border-[#2d4a6f]">
-                      <div className="flex items-center justify-between mb-4">
+                  <div className="space-y-6">
+                    {/* Clean Header */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-2xl font-semibold text-white tracking-tight">System Health</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {serverMonitoring?.timestamp ? `Updated ${new Date(serverMonitoring.timestamp).toLocaleTimeString()}` : 'Real-time monitoring'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setAutoRefresh(!autoRefresh)}
+                          className={`h-9 px-3 rounded-lg text-xs font-medium transition-all ${
+                            autoRefresh ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20' : 'bg-white/5 text-gray-400 ring-1 ring-white/10'
+                          }`}
+                        >
+                          {autoRefresh ? 'Auto ON' : 'Auto OFF'}
+                        </button>
+                        <button
+                          onClick={() => { fetchSystemHealth(); fetchServerMonitoring(); }}
+                          disabled={serverMonitoringLoading}
+                          className="h-9 px-4 bg-white text-gray-900 rounded-lg text-sm font-medium hover:bg-gray-100 transition-all disabled:opacity-50 flex items-center gap-2"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${serverMonitoringLoading ? 'animate-spin' : ''}`} />
+                          Refresh
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Status + Score Banner */}
+                    {serverMonitoring && (
+                      <div className={`rounded-xl p-5 flex items-center justify-between ${
+                        serverMonitoring.health_status === 'healthy' ? 'bg-emerald-500/5 ring-1 ring-emerald-500/20' :
+                        serverMonitoring.health_status === 'warning' ? 'bg-amber-500/5 ring-1 ring-amber-500/20' :
+                        'bg-red-500/5 ring-1 ring-red-500/20'
+                      }`}>
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                            <Server className="w-6 h-6 text-blue-400" />
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                            serverMonitoring.health_status === 'healthy' ? 'bg-emerald-500/10' :
+                            serverMonitoring.health_status === 'warning' ? 'bg-amber-500/10' : 'bg-red-500/10'
+                          }`}>
+                            {serverMonitoring.health_status === 'healthy' ? (
+                              <CheckCircle className="w-6 h-6 text-emerald-400" />
+                            ) : serverMonitoring.health_status === 'warning' ? (
+                              <AlertTriangle className="w-6 h-6 text-amber-400" />
+                            ) : (
+                              <AlertCircle className="w-6 h-6 text-red-400" />
+                            )}
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold text-white">Server Control Center</h3>
-                            <p className="text-sm text-gray-400">Real-time monitoring & controls</p>
+                            <p className={`text-lg font-semibold ${
+                              serverMonitoring.health_status === 'healthy' ? 'text-emerald-400' :
+                              serverMonitoring.health_status === 'warning' ? 'text-amber-400' : 'text-red-400'
+                            }`}>
+                              {serverMonitoring.health_status === 'healthy' ? 'All Systems Operational' :
+                               serverMonitoring.health_status === 'warning' ? 'Performance Degraded' : 'Issues Detected'}
+                            </p>
+                            <p className="text-sm text-gray-500">{serverMonitoring.issues?.length || 0} issues · {serverMonitoring.warnings?.length || 0} warnings</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          {/* Status Indicator */}
-                          <div className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 ${
-                            serverMonitoring?.health_status === 'healthy' ? 'bg-green-500/20 text-green-400 border border-green-500/50' :
-                            serverMonitoring?.health_status === 'warning' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' :
-                            serverMonitoring?.health_status === 'critical' ? 'bg-red-500/20 text-red-400 border border-red-500/50' :
-                            'bg-gray-500/20 text-gray-400 border border-gray-500/50'
-                          }`}>
-                            <div className={`w-2 h-2 rounded-full ${
-                              serverMonitoring?.health_status === 'healthy' ? 'bg-green-500 animate-pulse' :
-                              serverMonitoring?.health_status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-                            }`} />
-                            {serverMonitoring?.health_status?.toUpperCase() || 'LOADING'}
+                        {serverMonitoring.security_score && (
+                          <div className="flex items-center gap-4">
+                            <div className="text-right hidden sm:block">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Security</p>
+                              <p className="text-xl font-bold text-white">{serverMonitoring.security_score.score}/100</p>
+                            </div>
+                            <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-black ${
+                              serverMonitoring.security_score.grade === 'A' ? 'bg-emerald-500 text-white' :
+                              serverMonitoring.security_score.grade === 'B' ? 'bg-blue-500 text-white' :
+                              serverMonitoring.security_score.grade === 'C' ? 'bg-amber-500 text-white' :
+                              'bg-red-500 text-white'
+                            }`}>{serverMonitoring.security_score.grade}</div>
                           </div>
-                          <button
-                            onClick={() => setAutoRefresh(!autoRefresh)}
-                            className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                              autoRefresh ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-gray-500/20 text-gray-400 border border-gray-500/50'
-                            }`}
-                          >
-                            {autoRefresh ? '⟳ Auto ON' : '⟳ Auto OFF'}
-                          </button>
-                          <button
-                            onClick={() => { fetchSystemHealth(); fetchServerMonitoring(); }}
-                            disabled={serverMonitoringLoading}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50"
-                          >
-                            <RefreshCw className={`w-4 h-4 ${serverMonitoringLoading ? 'animate-spin' : ''}`} />
-                            Refresh
-                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Metrics Cards */}
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="bg-[#0d1829] rounded-xl p-5 ring-1 ring-white/5">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs text-gray-500 uppercase tracking-wide">CPU</span>
+                          <Cpu className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <p className="text-3xl font-semibold text-white">{serverMonitoring?.system?.cpu?.percent?.toFixed(0) || 0}<span className="text-lg text-gray-500">%</span></p>
+                        <div className="mt-3 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${(serverMonitoring?.system?.cpu?.percent || 0) > 80 ? 'bg-red-500' : (serverMonitoring?.system?.cpu?.percent || 0) > 60 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{width: `${serverMonitoring?.system?.cpu?.percent || 0}%`}} />
                         </div>
                       </div>
-
-                      {/* Quick Stats Bar */}
-                      <div className="grid grid-cols-4 gap-3 mt-4">
-                        <div className="bg-[#1e3a5f]/50 rounded-lg p-3 text-center">
-                          <p className="text-2xl font-bold text-white">{serverMonitoring?.system?.cpu?.percent?.toFixed(0) || 0}%</p>
-                          <p className="text-xs text-gray-400">CPU</p>
+                      <div className="bg-[#0d1829] rounded-xl p-5 ring-1 ring-white/5">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs text-gray-500 uppercase tracking-wide">Memory</span>
+                          <HardDrive className="w-4 h-4 text-gray-600" />
                         </div>
-                        <div className="bg-[#1e3a5f]/50 rounded-lg p-3 text-center">
-                          <p className="text-2xl font-bold text-white">{serverMonitoring?.system?.memory?.percent?.toFixed(0) || 0}%</p>
-                          <p className="text-xs text-gray-400">Memory</p>
+                        <p className="text-3xl font-semibold text-white">{serverMonitoring?.system?.memory?.percent?.toFixed(0) || 0}<span className="text-lg text-gray-500">%</span></p>
+                        <div className="mt-3 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${(serverMonitoring?.system?.memory?.percent || 0) > 80 ? 'bg-red-500' : (serverMonitoring?.system?.memory?.percent || 0) > 60 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{width: `${serverMonitoring?.system?.memory?.percent || 0}%`}} />
                         </div>
-                        <div className="bg-[#1e3a5f]/50 rounded-lg p-3 text-center">
-                          <p className="text-2xl font-bold text-white">{serverMonitoring?.security?.fail2ban?.banned_count || 0}</p>
-                          <p className="text-xs text-gray-400">Blocked IPs</p>
+                        <p className="text-xs text-gray-600 mt-2">{serverMonitoring?.system?.memory?.used_mb || 0} / {serverMonitoring?.system?.memory?.total_mb || 0} MB</p>
+                      </div>
+                      <div className="bg-[#0d1829] rounded-xl p-5 ring-1 ring-white/5">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs text-gray-500 uppercase tracking-wide">Disk</span>
+                          <Database className="w-4 h-4 text-gray-600" />
                         </div>
-                        <div className="bg-[#1e3a5f]/50 rounded-lg p-3 text-center">
-                          <p className="text-2xl font-bold text-white">{serverMonitoring?.security?.ssh_attacks?.top_attackers?.length || 0}</p>
-                          <p className="text-xs text-gray-400">Attackers</p>
+                        <p className="text-3xl font-semibold text-white">{parseInt(serverMonitoring?.system?.disk?.percent) || 0}<span className="text-lg text-gray-500">%</span></p>
+                        <div className="mt-3 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${(parseInt(serverMonitoring?.system?.disk?.percent) || 0) > 80 ? 'bg-red-500' : (parseInt(serverMonitoring?.system?.disk?.percent) || 0) > 60 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{width: `${parseInt(serverMonitoring?.system?.disk?.percent) || 0}%`}} />
                         </div>
+                        <p className="text-xs text-gray-600 mt-2">{serverMonitoring?.system?.disk?.used || '0'} / {serverMonitoring?.system?.disk?.total || '0'}</p>
+                      </div>
+                      <div className="bg-[#0d1829] rounded-xl p-5 ring-1 ring-white/5">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs text-gray-500 uppercase tracking-wide">Uptime</span>
+                          <Clock className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <p className="text-lg font-semibold text-white">{serverMonitoring?.system?.uptime || 'N/A'}</p>
+                        <p className="text-xs text-gray-600 mt-2">Load: {serverMonitoring?.system?.load_average || 'N/A'}</p>
                       </div>
                     </div>
 
