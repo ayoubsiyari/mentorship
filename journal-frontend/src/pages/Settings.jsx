@@ -151,7 +151,10 @@ export default function Settings() {
   const [serverMonitoring, setServerMonitoring] = useState(null);
   const [serverMonitoringLoading, setServerMonitoringLoading] = useState(false);
   const [attackHistory, setAttackHistory] = useState(null);
-  const [healthSubTab, setHealthSubTab] = useState('overview'); // overview, security, services, controls
+  const [healthSubTab, setHealthSubTab] = useState('overview'); // overview, security, services, intrusion
+  const [intrusionData, setIntrusionData] = useState(null);
+  const [securityAudit, setSecurityAudit] = useState(null);
+  const [intrusionLoading, setIntrusionLoading] = useState(false);
 
   // Application security state
   const [securityStats, setSecurityStats] = useState(null);
@@ -643,6 +646,32 @@ export default function Settings() {
     } catch (err) {
       console.error('Error fetching server monitoring:', err);
       setServerMonitoringLoading(false);
+    }
+  };
+
+  const fetchIntrusionDetection = async () => {
+    setIntrusionLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+      
+      const [intrusionRes, auditRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/admin/monitoring/intrusion-detection`, { headers }),
+        fetch(`${API_BASE_URL}/admin/monitoring/security-audit`, { headers })
+      ]);
+      
+      if (intrusionRes.ok) {
+        const data = await intrusionRes.json();
+        setIntrusionData(data);
+      }
+      if (auditRes.ok) {
+        const data = await auditRes.json();
+        setSecurityAudit(data);
+      }
+    } catch (err) {
+      console.error('Error fetching intrusion detection:', err);
+    } finally {
+      setIntrusionLoading(false);
     }
   };
 
@@ -2104,7 +2133,8 @@ export default function Settings() {
                         { id: 'overview', label: '📊 Overview', icon: Activity },
                         { id: 'security', label: '🛡️ Security', icon: Shield },
                         { id: 'services', label: '🐳 Services', icon: Server },
-                        { id: 'attackmap', label: '🗺️ Attack Map', icon: Globe }
+                        { id: 'attackmap', label: '🗺️ Attack Map', icon: Globe },
+                        { id: 'intrusion', label: '🔍 Intrusion', icon: Shield }
                       ].map(tab => (
                         <button
                           key={tab.id}

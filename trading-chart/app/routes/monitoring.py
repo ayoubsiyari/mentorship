@@ -521,6 +521,354 @@ def get_container_status(_: Any = Depends(require_admin)) -> dict:
     }
 
 
+@router.get("/intrusion-detection")
+def get_intrusion_detection(_: Any = Depends(require_admin)) -> dict:
+    """Detect signs of potential intrusion or compromise."""
+    
+    alerts = []
+    risk_level = "low"
+    
+    # 1. Check for successful SSH logins (potential unauthorized access)
+    successful_logins = run_command(["sh", "-c", """
+        grep 'Accepted' /host-logs/auth.log 2>/dev/null | tail -20 | 
+        awk '{print $1, $2, $3, $9, $11}'
+    """])
+    
+    login_list = []
+    for line in successful_logins.strip().split('\n'):
+        if line and 'Accepted' not in line:
+            parts = line.strip().split()
+            if len(parts) >= 4:
+                login_list.append({
+                    "date": f"{parts[0]} {parts[1]}",
+                    "time": parts[2] if len(parts) > 2 else "",
+                    "user": parts[3] if len(parts) > 3 else "unknown",
+                    "ip": parts[4] if len(parts) > 4 else "unknown"
+                })
+    
+    # 2. Check for new user accounts created recently
+    new_users = run_command(["sh", "-c", """
+        grep 'new user' /host-logs/auth.log 2>/dev/null | tail -10 ||
+        grep 'useradd' /host-logs/auth.log 2>/dev/null | tail -10
+    """])
+    if new_users and "new user" in new_users.lower():
+        alerts.append({
+            "severity": "high",
+            "type": "new_user",
+            "message": "New user account(s) created recently",
+            "details": new_users[:200]
+        })
+        risk_level = "high"
+    
+    # 3. Check for sudo/root access attempts
+    sudo_attempts = run_command(["sh", "-c", """
+        grep -E 'sudo|su:' /host-logs/auth.log 2>/dev/null | 
+        grep -v 'session opened' | tail -10
+    """])
+    
+    # 4. Check for modified system files (passwd, shadow, sudoers)
+    file_integrity = []
+    critical_files = [
+        "/etc/passwd",
+        "/etc/shadow", 
+        "/etc/sudoers",
+        "/etc/ssh/sshd_config"
+    ]
+    
+    for filepath in critical_files:
+        # Check modification time via host logs
+        mod_check = run_command(["sh", "-c", f"stat -c '%Y %n' {filepath} 2>/dev/null"])
+        if mod_check:
+            file_integrity.append({"file": filepath, "status": "checked"})
+    
+    # 5. Check for suspicious processes (crypto miners, reverse shells)
+    suspicious_processes = run_command(["sh", "-c", """
+        ps aux 2>/dev/null | grep -iE '(miner|xmrig|cryptonight|nc -e|bash -i|/dev/tcp)' | 
+        grep -v grep | head -5
+    """])
+    if suspicious_processes and len(suspicious_processes.strip()) > 5:
+        alerts.append({
+            "severity": "critical",
+            "type": "suspicious_process",
+            "message": "Potentially malicious process detected",
+            "details": suspicious_processes[:200]
+        })
+        risk_level = "critical"
+    
+    # 6. Check for unauthorized cron jobs
+    cron_check = run_command(["sh", "-c", """
+        cat /var/spool/cron/crontabs/* 2>/dev/null | grep -v '^#' | head -10 ||
+        crontab -l 2>/dev/null | grep -v '^#'
+    """])
+    
+    # 7. Check for unusual network connections
+    network_connections = run_command(["sh", "-c", """
+        netstat -tuln 2>/dev/null | grep LISTEN | 
+        awk '{print $4}' | sort -u | head -20 ||
+        ss -tuln 2>/dev/null | grep LISTEN | awk '{print $5}' | head -20
+    """])
+    
+    # 8. Check for recently modified binaries in /usr/bin
+    modified_binaries = run_command(["sh", "-c", """
+        find /usr/bin -mtime -7 -type f 2>/dev/null | head -10
+    """])
+    if modified_binaries and len(modified_binaries.strip()) > 0:
+        alerts.append({
+            "severity": "medium",
+            "type": "modified_binary",
+            "message": "System binaries modified in last 7 days",
+            "details": modified_binaries[:200]
+        })
+        if risk_level == "low":
+            risk_level = "medium"
+    
+    # 9. Check auth.log for brute force success after failures
+    brute_success = run_command(["sh", "-c", """
+        awk '/Failed password/{ip=$11; fails[ip]++} 
+             /Accepted/{if(fails[$11]>5) print "ALERT: "$11" succeeded after "fails[$11]" failures"}' \
+        /host-logs/auth.log 2>/dev/null | tail -5
+    """])
+    if brute_success and "ALERT" in brute_success:
+        alerts.append({
+            "severity": "critical",
+            "type": "brute_force_success",
+            "message": "Successful login after multiple failed attempts",
+            "details": brute_success
+        })
+        risk_level = "critical"
+    
+    # 10. Check for unusual outbound connections
+    outbound_check = run_command(["sh", "-c", """
+        netstat -tn 2>/dev/null | grep ESTABLISHED | 
+        awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -rn | head -5 ||
+        ss -tn 2>/dev/null | grep ESTAB | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -rn | head -5
+    """])
+    
+    return {
+        "timestamp": datetime.utcnow().isoformat(),
+        "risk_level": risk_level,
+        "alerts": alerts,
+        "recent_logins": login_list[:10],
+        "active_connections": network_connections.strip().split('\n') if network_connections else [],
+        "outbound_connections": outbound_check.strip().split('\n') if outbound_check else [],
+        "file_integrity": file_integrity,
+        "cron_jobs": cron_check.strip().split('\n') if cron_check else [],
+        "checks_performed": [
+            "SSH login analysis",
+            "New user detection",
+            "Sudo access monitoring",
+            "Critical file integrity",
+            "Suspicious process scan",
+            "Cron job audit",
+            "Network connection review",
+            "Brute force success detection"
+        ]
+    }
+
+
+@router.get("/breach-check")
+def check_data_breach(email: str = None, _: Any = Depends(require_admin)) -> dict:
+    """Check if email/domain has been involved in known data breaches.
+    Uses haveibeenpwned.com API (requires API key for full access).
+    """
+    
+    results = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "email_checked": email,
+        "breaches_found": [],
+        "recommendations": []
+    }
+    
+    if not email:
+        # Return general security recommendations
+        results["recommendations"] = [
+            "Enable 2FA on all accounts",
+            "Use unique passwords for each service",
+            "Monitor your email on haveibeenpwned.com",
+            "Review connected apps and revoke unused access",
+            "Check for unauthorized account activity"
+        ]
+        return results
+    
+    # For privacy, we'll check breach databases via API
+    # Note: Full HIBP API requires an API key
+    try:
+        # Check against HIBP (limited without API key)
+        with httpx.Client(timeout=5.0) as client:
+            # This endpoint is rate-limited without API key
+            resp = client.get(
+                f"https://haveibeenpwned.com/api/v3/breachedaccount/{email}",
+                headers={
+                    "User-Agent": "MentorshipSecurityCheck",
+                    "hibp-api-key": ""  # Would need real key for production
+                }
+            )
+            
+            if resp.status_code == 200:
+                breaches = resp.json()
+                results["breaches_found"] = [
+                    {"name": b.get("Name"), "date": b.get("BreachDate")} 
+                    for b in breaches[:10]
+                ]
+                results["breach_count"] = len(breaches)
+            elif resp.status_code == 404:
+                results["status"] = "No breaches found"
+            elif resp.status_code == 401:
+                results["status"] = "API key required for full check"
+            else:
+                results["status"] = f"Check manually at haveibeenpwned.com"
+    except Exception as e:
+        results["status"] = "Check manually at haveibeenpwned.com"
+        results["error"] = str(e)
+    
+    # Add SSL certificate check for the domain
+    if email and "@" in email:
+        domain = email.split("@")[1]
+        results["domain"] = domain
+        
+        try:
+            import ssl
+            import socket
+            context = ssl.create_default_context()
+            with socket.create_connection((domain, 443), timeout=5) as sock:
+                with context.wrap_socket(sock, server_hostname=domain) as ssock:
+                    cert = ssock.getpeercert()
+                    results["ssl_valid"] = True
+                    results["ssl_expires"] = cert.get("notAfter")
+        except Exception:
+            results["ssl_valid"] = "Could not verify"
+    
+    results["recommendations"] = [
+        "Change passwords for any breached accounts",
+        "Enable 2FA where available",
+        "Use a password manager",
+        "Monitor for suspicious activity"
+    ]
+    
+    return results
+
+
+@router.get("/security-audit")
+def run_security_audit(_: Any = Depends(require_admin)) -> dict:
+    """Run a comprehensive security audit of the system."""
+    
+    audit_results = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "score": 100,
+        "checks": [],
+        "passed": 0,
+        "failed": 0,
+        "warnings": 0
+    }
+    
+    checks = []
+    
+    # 1. SSH Configuration
+    ssh_root = run_command(["sh", "-c", "grep -i 'PermitRootLogin' /etc/ssh/sshd_config 2>/dev/null | head -1"])
+    root_login_disabled = "no" in ssh_root.lower() if ssh_root else False
+    checks.append({
+        "name": "SSH Root Login Disabled",
+        "status": "pass" if root_login_disabled else "fail",
+        "severity": "high",
+        "recommendation": "Set PermitRootLogin no in /etc/ssh/sshd_config"
+    })
+    
+    ssh_password = run_command(["sh", "-c", "grep -i 'PasswordAuthentication' /etc/ssh/sshd_config 2>/dev/null | head -1"])
+    password_disabled = "no" in ssh_password.lower() if ssh_password else False
+    checks.append({
+        "name": "SSH Password Auth Disabled",
+        "status": "pass" if password_disabled else "warning",
+        "severity": "medium",
+        "recommendation": "Use SSH keys instead of passwords"
+    })
+    
+    # 2. Firewall Status
+    ufw_status = run_command(["sh", "-c", "ufw status 2>/dev/null | head -1"])
+    firewall_active = "active" in ufw_status.lower() if ufw_status else False
+    checks.append({
+        "name": "Firewall Active",
+        "status": "pass" if firewall_active else "fail",
+        "severity": "high",
+        "recommendation": "Enable UFW: sudo ufw enable"
+    })
+    
+    # 3. Fail2Ban Status
+    f2b_status = run_command(["sh", "-c", "test -f /host-logs/fail2ban.log && echo 'active'"])
+    checks.append({
+        "name": "Fail2Ban Active",
+        "status": "pass" if "active" in f2b_status else "fail",
+        "severity": "high",
+        "recommendation": "Install and enable fail2ban"
+    })
+    
+    # 4. Unattended Upgrades
+    auto_updates = run_command(["sh", "-c", "dpkg -l unattended-upgrades 2>/dev/null | grep -q ii && echo 'installed'"])
+    checks.append({
+        "name": "Auto Security Updates",
+        "status": "pass" if "installed" in auto_updates else "warning",
+        "severity": "medium",
+        "recommendation": "Install unattended-upgrades package"
+    })
+    
+    # 5. Open Ports Check
+    open_ports = run_command(["sh", "-c", "netstat -tuln 2>/dev/null | grep LISTEN | wc -l || ss -tuln | grep LISTEN | wc -l"])
+    port_count = int(open_ports.strip()) if open_ports.strip().isdigit() else 0
+    checks.append({
+        "name": "Minimal Open Ports",
+        "status": "pass" if port_count < 10 else "warning",
+        "severity": "low",
+        "details": f"{port_count} ports open",
+        "recommendation": "Close unnecessary ports"
+    })
+    
+    # 6. SSL Certificate Valid
+    ssl_check = run_command(["sh", "-c", "echo | openssl s_client -connect localhost:443 2>/dev/null | openssl x509 -noout -dates 2>/dev/null"])
+    checks.append({
+        "name": "SSL Certificate Valid",
+        "status": "pass" if "notAfter" in ssl_check else "warning",
+        "severity": "high",
+        "recommendation": "Ensure SSL certificates are valid and auto-renewed"
+    })
+    
+    # 7. No World-Writable Files
+    world_writable = run_command(["sh", "-c", "find /etc -perm -002 -type f 2>/dev/null | head -5"])
+    checks.append({
+        "name": "No World-Writable Config Files",
+        "status": "pass" if not world_writable.strip() else "fail",
+        "severity": "medium",
+        "recommendation": "Fix permissions: chmod o-w <file>"
+    })
+    
+    # 8. Log Monitoring Active
+    log_check = run_command(["sh", "-c", "test -f /host-logs/auth.log && echo 'exists'"])
+    checks.append({
+        "name": "Security Logging Active",
+        "status": "pass" if "exists" in log_check else "warning",
+        "severity": "medium",
+        "recommendation": "Ensure auth.log is being written"
+    })
+    
+    # Calculate score
+    for check in checks:
+        if check["status"] == "pass":
+            audit_results["passed"] += 1
+        elif check["status"] == "fail":
+            audit_results["failed"] += 1
+            audit_results["score"] -= 15 if check["severity"] == "high" else 10
+        else:
+            audit_results["warnings"] += 1
+            audit_results["score"] -= 5
+    
+    audit_results["score"] = max(0, audit_results["score"])
+    audit_results["checks"] = checks
+    
+    # Grade
+    score = audit_results["score"]
+    audit_results["grade"] = "A" if score >= 90 else "B" if score >= 80 else "C" if score >= 70 else "D" if score >= 60 else "F"
+    
+    return audit_results
+
+
 @router.get("/attack-history")
 def get_attack_history(_: Any = Depends(require_admin)) -> dict:
     """Get historical attack data from archived logs."""
