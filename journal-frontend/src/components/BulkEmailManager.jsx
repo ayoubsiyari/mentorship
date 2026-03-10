@@ -62,7 +62,7 @@ const EMAIL_TEMPLATES = [
                                 <tr>
                                     <td style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border: 1px solid #e0e0e0;">
                                         <h3 style="color: #1e3a5f; font-size: 14px; margin: 0 0 12px 0; font-weight: 700;">2️⃣ إتمام عملية الدفع</h3>
-                                        <p style="color: #cc0000; font-size: 11px; margin: 8px 0 12px 0; padding: 0 12px; text-align: center;">⚠️ تأكد من نسخ العنوان بشكل صحيح وكامل</p>
+                                        <p style="color: #e30909; font-size: 11px; margin: 8px 0 12px 0; padding: 0 12px; text-align: center;">⚠️ تأكد من نسخ العنوان بشكل صحيح وكامل</p>
                                         <p style="color: #cc0000; font-size: 15px; margin: 8px 0 12px 0; padding: 0 12px; text-align: center;">للمزيد من طرق الدفع يرجى التواصل مع (support-center@talaria-log.com)</p>
                                                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px;">
                                             <tr><td style="padding: 12px; border-bottom: 1px solid #e0e0e0;"><span style="color: #000000; font-size: 14px;">طريقة الدفع: <strong>الكريبتو</strong></span></td></tr>
