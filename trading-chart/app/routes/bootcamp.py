@@ -186,45 +186,123 @@ def _send_user_confirmation_email(reg: BootcampRegistration) -> None:
 
 
 def _send_mentorship_acceptance_email(reg: BootcampRegistration) -> None:
-    """Send mentorship acceptance notice to the user (after successful registration)."""
+    """Send mentorship acceptance email (same HTML as admin Email Templates → Mentorship Acceptance)."""
     if not all([settings.smtp_host, settings.smtp_user, settings.smtp_password]):
         logger.info("Email settings not configured, skipping mentorship acceptance email")
         return
 
     subject = "تهانينا! تم قبول طلبك للانضمام إلى برنامج المنتورشيب"
 
-    html_body = f"""
-    <html dir="rtl">
-    <body style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 20px; background-color: #1a1a2e; margin: 0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #0f172a; border-radius: 15px; padding: 32px; border: 1px solid #1e3a5f; direction: rtl; text-align: center;">
-            <div style="margin-bottom: 28px;">
-                <span style="font-size: 36px; vertical-align: middle;">🎉</span>
-                <h1 style="color: #ffffff; margin: 12px 0 8px 0; font-size: 24px; font-weight: 700;">
-                    Mentorship Acceptance
-                </h1>
-                <p style="color: #e2e8f0; margin: 0; font-size: 18px; line-height: 1.6;">
-                    تهانينا! تم قبول طلبك للانضمام إلى برنامج المنتورشيب
-                </p>
-            </div>
-
-            <p style="color: #cbd5e1; font-size: 16px; line-height: 1.85; text-align: right; margin: 0 0 20px 0;">
-                عزيزي <strong style="color: #ffffff;">{reg.full_name}</strong>،
-            </p>
-            <p style="color: #94a3b8; font-size: 15px; line-height: 1.85; text-align: right; margin: 0;">
-                يسعدنا إبلاغك بأنه تم قبول طلبك رسمياً. نرحب بك في عائلة Talaria للمنتورشيب،
-                وسيتواصل معك الفريق عبر البريد الإلكتروني بأي خطوات أو مواعيد مهمة.
-            </p>
-
-            <p style="color: #64748b; font-size: 13px; text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #1e3a5f;">
-                للاستفسارات: <a href="mailto:support-center@talaria-log.com" style="color: #60a5fa;">support-center@talaria-log.com</a>
-            </p>
-            <p style="color: #475569; font-size: 12px; text-align: center; margin-top: 12px;">
-                © 2026 Talaria-Log. جميع الحقوق محفوظة.
-            </p>
-        </div>
-    </body>
-    </html>
-    """
+    # Kept in sync with journal-frontend BulkEmailManager EMAIL_TEMPLATES id=mentorship-acceptance
+    html_body = """<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; direction: rtl; text-align: right;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f5f5; direction: rtl;">
+        <tr>
+            <td align="center" style="padding: 20px 10px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 12px; overflow: hidden; direction: rtl; text-align: right;">
+                    <tr>
+                        <td style="background-color: #1e3a5f; padding: 30px 20px; text-align: center;">
+                            <img src="https://talaria-log.com/logo-08.png" alt="Talaria" width="100" style="display: block; margin: 0 auto; max-width: 100px;">
+                            <h1 style="color: #ffffff; font-size: 24px; margin: 20px 0 0 0; font-weight: 700;">🎉 تهانينا!</h1>
+                            <p style="color: #ffffff; font-size: 14px; margin: 10px 0 0 0;">تم قبول طلبك للانضمام</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 20px; direction: rtl; text-align: right;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 25px;">
+                                <tr>
+                                    <td style="background-color: #e8f4fd; border-right: 4px solid #1e3a5f; padding: 15px; border-radius: 6px;">
+                                        <p style="color: #000000; font-size: 14px; margin: 0; line-height: 1.6;">⚠️ لضمان مكانك في المنتورشيب يرجى اتباع الخطوات التالية:</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 25px;">
+                                <tr>
+                                    <td style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border: 1px solid #e0e0e0;">
+                                        <h3 style="color: #1e3a5f; font-size: 14px; margin: 0 0 12px 0; font-weight: 700;">📋 قبل البدء</h3>
+                                        <ul style="color: #000000; font-size: 14px; line-height: 1.8; margin: 0; padding-right: 20px; padding-left: 0;">
+                                            <li>يرجى سداد رسوم المنتورشيب <strong>خلال سبعة أيام</strong> من استلام هذه الرسالة، وإلا سيتم إلغاء الحجز.</li>
+                                            <li>الرسوم <strong>غير قابلة للاسترداد</strong> إلا في حالة إلغاء المنتورشيب.</li>
+                                            <li>تبدأ الدروس الساعة <strong>9 مساءً بتوقيت مكة المكرمة</strong> من الاثنين إلى الجمعة.</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 25px;">
+                                <tr>
+                                    <td style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border: 1px solid #e0e0e0;">
+                                        <h3 style="color: #1e3a5f; font-size: 14px; margin: 0 0 12px 0; font-weight: 700;">1️⃣ التواصل عبر ديسكورد</h3>
+                                        <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0 0 10px 0;">التواصل في المنتورشيب يتم عبر تطبيق <strong>ديسكورد</strong></p>
+                                        <ul style="color: #000000; font-size: 14px; line-height: 1.8; margin: 0; padding-right: 20px; padding-left: 0;">
+                                            <li>إذا كان لديك حساب ديسكورد، أرسل اسم المستخدم الخاص بك.</li>
+                                            <li>إذا لم يكن لديك حساب، قم بتحميل البرنامج من <a href="https://discord.com" style="color: #1e3a5f; font-weight: 600;">discord.com</a></li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 25px;">
+                                <tr>
+                                    <td style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border: 1px solid #e0e0e0;">
+                                        <h3 style="color: #1e3a5f; font-size: 14px; margin: 0 0 12px 0; font-weight: 700;">2️⃣ إتمام عملية الدفع</h3>
+                                        <p style="color: #e30909; font-size: 11px; margin: 8px 0 12px 0; padding: 0 12px; text-align: center;">⚠️ تأكد من نسخ العنوان بشكل صحيح وكامل</p>
+                                        <p style="color: #cc0000; font-size: 15px; margin: 8px 0 12px 0; padding: 0 12px; text-align: center;">للمزيد من طرق الدفع يرجى التواصل مع (support-center@talaria-log.com)</p>
+                                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px;">
+                                            <tr><td style="padding: 12px; border-bottom: 1px solid #e0e0e0;"><span style="color: #000000; font-size: 14px;">طريقة الدفع: <strong>الكريبتو</strong></span></td></tr>
+                                            <tr><td style="padding: 12px; border-bottom: 1px solid #e0e0e0;"><span style="color: #000000; font-size: 14px;">نوع العملة: <strong>USDC أو USDT</strong></span></td></tr>
+                                            <tr><td style="padding: 12px; border-bottom: 1px solid #e0e0e0;"><span style="color: #000000; font-size: 14px;">المبلغ: <strong style="color: #1e3a5f;">$700</strong></span></td></tr>
+                                            <tr><td style="padding: 12px; border-bottom: 1px solid #e0e0e0;"><span style="color: #000000; font-size: 14px;">الشبكة: <strong>BEP20</strong></span></td></tr>
+                                            <tr>
+                                                <td style="padding: 0;">
+                                                    <p style="color: #000000; font-size: 12px; margin: 0 0 8px 0; padding: 0 12px;">عنوان المحفظة:</p>
+                                                    <div style="background-color: #e8e8e8; padding: 12px 2px; text-align: center; margin: 0; width: 100%;">
+                                                        <span style="font-size: 7px; color: #000000; font-family: Arial, sans-serif; letter-spacing: -0.3px;">0xe25D96504c2106a243dc93D948d19640Cf6F4800</span>
+                                                    </div>
+                                                    <p style="color: #cc0000; font-size: 11px; margin: 8px 0 12px 0; padding: 0 12px; text-align: center;">⚠️ تأكد من نسخ العنوان بشكل صحيح وكامل</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 25px;">
+                                <tr>
+                                    <td style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border: 1px solid #e0e0e0;">
+                                        <h3 style="color: #1e3a5f; font-size: 14px; margin: 0 0 12px 0; font-weight: 700;">3️⃣ عند إتمام الدفع</h3>
+                                        <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0 0 12px 0;">عند قيامك باتمام عملية الدفع، قم بإرسال المعلومات أدناه لنا عبر بريدنا الالكتروني:<br><strong style="color: #1e3a5f;">support-center@talaria-log.com</strong><br>متضمناً:</p>
+                                        <ul style="color: #000000; font-size: 14px; line-height: 1.8; margin: 0; padding-right: 20px; padding-left: 0;">
+                                            <li><strong>1.</strong> اسم معرف الديسكورد (USER NAME)</li>
+                                            <li><strong>2.</strong> كود عملية التحويل (TXID) - <strong>لن يتم قبول طلبك بدونه</strong></li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td style="background-color: #1e3a5f; border-radius: 8px; padding: 20px; text-align: center;">
+                                        <p style="color: #ffffff; font-size: 14px; line-height: 1.6; margin: 0;">✅ بعد استلام المبلغ ستتلقى رسالة تأكيد،<br>تليها تفاصيل الدخول إلى سيرفر الديسكورد بين <strong>٣ و ٥ يوليو</strong></p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 25px; text-align: center; border-top: 1px solid #e0e0e0;">
+                            <p style="color: #000000; font-size: 14px; margin: 0 0 8px 0;">للاستفسارات، تواصل معنا عبر</p>
+                            <a href="mailto:support-center@talaria-log.com" style="color: #1e3a5f; font-size: 14px; font-weight: 600;">support-center@talaria-log.com</a>
+                            <p style="color: #000000; font-size: 14px; margin: 15px 0 0 0;">© 2026 Talaria-Log <br>جميع الحقوق محفوظة</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
