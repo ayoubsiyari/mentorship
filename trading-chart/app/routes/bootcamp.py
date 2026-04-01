@@ -90,101 +90,6 @@ def _send_registration_email(reg: BootcampRegistration) -> None:
         server.send_message(msg)
 
 
-def _send_user_confirmation_email(reg: BootcampRegistration) -> None:
-    """Send confirmation email to the user who registered."""
-    if not all([settings.smtp_host, settings.smtp_user, settings.smtp_password]):
-        logger.info("Email settings not configured, skipping user confirmation")
-        return
-
-    subject = "مرحباً بك في برنامج Talaria للمنتورشيب - تم تأكيد التسجيل"
-    
-    html_body = f"""
-    <html dir="rtl">
-    <body style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 20px; background-color: #1a1a2e; margin: 0;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #0f0f23; border-radius: 15px; padding: 30px; border: 1px solid #3730a3; direction: rtl; text-align: right;">
-            <div style="text-align: center; margin-bottom: 25px;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 28px;">🎓 Talaria Mentorship 2026</h1>
-                <p style="color: #a5b4fc; margin-top: 5px;">تم تأكيد التسجيل</p>
-            </div>
-            
-            <p style="color: #e0e7ff; font-size: 16px; line-height: 1.8;">
-                عزيزي <strong style="color: #ffffff;">{reg.full_name}</strong>،
-            </p>
-            
-            <p style="color: #c7d2fe; font-size: 15px; line-height: 1.8;">
-                شكراً لتسجيلك في برنامج Talaria للمنتورشيب! تم استلام طلبك وهو قيد المراجعة.
-            </p>
-            
-            <div style="background-color: #1e1b4b; border-radius: 10px; padding: 20px; margin: 25px 0; border: 1px solid #3730a3;">
-                <h3 style="color: #a5b4fc; margin-top: 0; font-size: 16px;">تفاصيل التسجيل</h3>
-                <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
-                    <tr>
-                        <td style="padding: 8px 0; color: #94a3b8; font-size: 14px; width: 80px;">الاسم:</td>
-                        <td style="padding: 8px 0; color: #ffffff; font-size: 14px; word-break: break-word;"><strong>{reg.full_name}</strong></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0; color: #94a3b8; font-size: 14px;">البريد:</td>
-                        <td style="padding: 8px 0; color: #60a5fa; font-size: 14px; direction: ltr; text-align: right; word-break: break-all;"><strong>{reg.email}</strong></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0; color: #94a3b8; font-size: 14px;">الهاتف:</td>
-                        <td style="padding: 8px 0; color: #ffffff; font-size: 14px; direction: ltr; text-align: right;"><strong>{reg.phone or 'غير متوفر'}</strong></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0; color: #94a3b8; font-size: 14px;">الدولة:</td>
-                        <td style="padding: 8px 0; color: #ffffff; font-size: 14px; word-break: break-word;"><strong>{reg.country}</strong></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0; color: #94a3b8; font-size: 14px;">Discord:</td>
-                        <td style="padding: 8px 0; color: #ffffff; font-size: 14px; direction: ltr; text-align: right; word-break: break-all;"><strong>{reg.discord}</strong></td>
-                    </tr>
-                </table>
-            </div>
-            
-            <div style="background-color: #422006; border-radius: 10px; padding: 20px; margin: 25px 0; border: 1px solid #ca8a04;">
-                <h3 style="color: #fbbf24; margin-top: 0; font-size: 16px;">✅ الشروط والأحكام التي وافقت عليها</h3>
-                <ul style="color: #fef3c7; font-size: 13px; line-height: 2; padding-right: 20px; margin: 0;">
-                </ul>
-                <div style="text-align: center; margin-top: 15px;">
-                    <a href="https://talaria-log.com/files/mentorship-agreement.pdf" style="display: inline-block; background-color: #fbbf24; color: #422006; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; text-decoration: none; margin-bottom: 10px;">📥 تحميل إقرار واتفاقية  (PDF)</a>
-                </div>
-                
-            </div>
-            
-            <div style="background-color: #052e16; border-radius: 10px; padding: 20px; margin: 25px 0; border: 1px solid #16a34a;">
-                <h3 style="color: #4ade80; margin-top: 0; font-size: 16px;">📌 ما التالي؟</h3>
-                <p style="color: #bbf7d0; font-size: 14px; line-height: 1.8; margin: 0;">
-                    سيقوم فريقنا بمراجعة طلبك والتواصل معك قريباً عبر البريد الإلكتروني مع تعليمات إضافية خلال 48h 
-                </p>
-            </div>
-            
-            <p style="color: #94a3b8; font-size: 13px; text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #3730a3;">
-                إذا كان لديك أي أسئلة، رد على هذا البريد أو تواصل معنا على support-center@talaria-log.com
-            </p>
-            
-            <p style="color: #64748b; font-size: 12px; text-align: center; margin-top: 15px;">
-                © 2026 Talaria-Log. جميع الحقوق محفوظة.
-            </p>
-        </div>
-    </body>
-    </html>
-    """
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = f"Talaria <{settings.smtp_from_email or settings.smtp_user}>"
-    msg["To"] = reg.email
-    msg["Message-ID"] = make_msgid(domain="talaria-log.com")
-    msg["Date"] = formatdate(localtime=True)
-
-    msg.attach(MIMEText(html_body, "html"))
-
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-        server.starttls()
-        server.login(settings.smtp_user, settings.smtp_password)
-        server.send_message(msg)
-
-
 def _send_mentorship_acceptance_email(reg: BootcampRegistration) -> None:
     """Send mentorship acceptance email (same HTML as admin Email Templates → Mentorship Acceptance)."""
     if not all([settings.smtp_host, settings.smtp_user, settings.smtp_password]):
@@ -438,10 +343,6 @@ def register(
         _send_registration_email(reg)
     except Exception:
         logger.exception("email_notification_failed")
-    try:
-        _send_user_confirmation_email(reg)
-    except Exception:
-        logger.exception("user_confirmation_email_failed")
     try:
         _send_mentorship_acceptance_email(reg)
     except Exception:
