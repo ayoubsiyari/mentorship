@@ -185,6 +185,62 @@ def _send_user_confirmation_email(reg: BootcampRegistration) -> None:
         server.send_message(msg)
 
 
+def _send_mentorship_acceptance_email(reg: BootcampRegistration) -> None:
+    """Send mentorship acceptance notice to the user (after successful registration)."""
+    if not all([settings.smtp_host, settings.smtp_user, settings.smtp_password]):
+        logger.info("Email settings not configured, skipping mentorship acceptance email")
+        return
+
+    subject = "تهانينا! تم قبول طلبك للانضمام إلى برنامج المنتورشيب"
+
+    html_body = f"""
+    <html dir="rtl">
+    <body style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 20px; background-color: #1a1a2e; margin: 0;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #0f172a; border-radius: 15px; padding: 32px; border: 1px solid #1e3a5f; direction: rtl; text-align: center;">
+            <div style="margin-bottom: 28px;">
+                <span style="font-size: 36px; vertical-align: middle;">🎉</span>
+                <h1 style="color: #ffffff; margin: 12px 0 8px 0; font-size: 24px; font-weight: 700;">
+                    Mentorship Acceptance
+                </h1>
+                <p style="color: #e2e8f0; margin: 0; font-size: 18px; line-height: 1.6;">
+                    تهانينا! تم قبول طلبك للانضمام إلى برنامج المنتورشيب
+                </p>
+            </div>
+
+            <p style="color: #cbd5e1; font-size: 16px; line-height: 1.85; text-align: right; margin: 0 0 20px 0;">
+                عزيزي <strong style="color: #ffffff;">{reg.full_name}</strong>،
+            </p>
+            <p style="color: #94a3b8; font-size: 15px; line-height: 1.85; text-align: right; margin: 0;">
+                يسعدنا إبلاغك بأنه تم قبول طلبك رسمياً. نرحب بك في عائلة Talaria للمنتورشيب،
+                وسيتواصل معك الفريق عبر البريد الإلكتروني بأي خطوات أو مواعيد مهمة.
+            </p>
+
+            <p style="color: #64748b; font-size: 13px; text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #1e3a5f;">
+                للاستفسارات: <a href="mailto:support-center@talaria-log.com" style="color: #60a5fa;">support-center@talaria-log.com</a>
+            </p>
+            <p style="color: #475569; font-size: 12px; text-align: center; margin-top: 12px;">
+                © 2026 Talaria-Log. جميع الحقوق محفوظة.
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"Talaria <{settings.smtp_from_email or settings.smtp_user}>"
+    msg["To"] = reg.email
+    msg["Message-ID"] = make_msgid(domain="talaria-log.com")
+    msg["Date"] = formatdate(localtime=True)
+
+    msg.attach(MIMEText(html_body, "html"))
+
+    with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+        server.starttls()
+        server.login(settings.smtp_user, settings.smtp_password)
+        server.send_message(msg)
+
+
 def _append_registration_to_google_sheets(reg: BootcampRegistration) -> None:
     if not settings.google_sheets_spreadsheet_id:
         return
@@ -308,4 +364,8 @@ def register(
         _send_user_confirmation_email(reg)
     except Exception:
         logger.exception("user_confirmation_email_failed")
+    try:
+        _send_mentorship_acceptance_email(reg)
+    except Exception:
+        logger.exception("mentorship_acceptance_email_failed")
     return {"ok": True, "id": reg.id}
