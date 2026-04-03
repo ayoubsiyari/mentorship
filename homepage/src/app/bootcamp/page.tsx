@@ -472,13 +472,6 @@ export default function BootcampPage() {
               </Button>
               <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{t.tabs.soon}</span>
             </div>
-            <div className="relative group">
-              <Button className="rounded-full text-sm sm:text-base px-4 py-3 sm:px-8 sm:py-6 text-white/50 bg-gradient-to-r from-black via-blue-900/50 to-blue-600/50 shadow-[0_0_0_1px_rgba(59,130,246,0.15),0_18px_45px_rgba(37,99,235,0.15)] cursor-not-allowed opacity-60">
-                <span className="tg-mask" aria-hidden="true" />
-              </Button>
-              <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-semibold">{t.tabs.soon}</span>
-            </div>
-            {/* NinjaTrader tab hidden for now
             <Link href="/ninjatrader">
               <Button variant="ghost" className="px-2 sm:px-4 py-1 text-sm rounded-full h-6 sm:h-8 flex items-center bg-transparent hover:bg-white/10">
                 <Image
@@ -490,7 +483,6 @@ export default function BootcampPage() {
                 />
               </Button>
             </Link>
-            */}
           </motion.div>
         </div>
       </div>
