@@ -54,7 +54,7 @@ export default function SiteDisclosuresFooter({
               terms: "شروط الخدمة",
               refunds: "سياسة الاسترجاع",
               disclaimer: "إخلاء مسؤولية التداول",
-              ninjaTraderDisclaimer: "إخلاء مسؤولية NinjaTrader",
+              ninjaTraderDisclaimer: "Disclaimer",
               contact: "تواصل",
               emailSupport: "دعم عبر البريد الإلكتروني",
               rights: "© 2026 Talaria Log جميع الحقوق محفوظة.",
