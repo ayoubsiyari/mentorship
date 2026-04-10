@@ -36,16 +36,20 @@ export default function SiteDisclosuresFooter({
   en,
   ar,
   footer,
+  forceLtr,
 }: {
   en?: Disclosures;
   ar?: Disclosures;
   footer?: FooterCopy;
+  /** Force left-to-right layout and English chrome (e.g. English-only partner pages). */
+  forceLtr?: boolean;
 }) {
   const { isArabic } = useLanguage();
+  const layoutRtl = forceLtr ? false : isArabic;
 
   const defaultFooter = React.useMemo(
     () =>
-      isArabic
+      layoutRtl
         ? {
             footer: {
               brandLine: "أدوات تداول احترافية للمتداولين الجادّين.",
@@ -76,7 +80,7 @@ export default function SiteDisclosuresFooter({
               riskLine: "",
             },
           },
-    [isArabic]
+    [layoutRtl]
   );
 
   const t = React.useMemo(
@@ -119,18 +123,30 @@ export default function SiteDisclosuresFooter({
 
   return (
     <>
-      <section className="border-t border-blue-500/10 py-8 px-6 bg-[#030014]">
+      <section
+        dir={forceLtr ? "ltr" : undefined}
+        className="border-t border-blue-500/10 py-8 px-6 bg-[#030014]"
+      >
         <div className="max-w-7xl mx-auto">
           <div className="rounded-2xl border border-blue-500/10 bg-[#0f0f23]/40 p-4">
             <div className="max-h-[220px] overflow-y-auto pr-3">
-              <BilingualDisclosures en={disclosuresEn} ar={disclosuresAr} />
+              <BilingualDisclosures
+                en={disclosuresEn}
+                ar={disclosuresAr}
+                englishOnly={forceLtr}
+              />
             </div>
           </div>
         </div>
       </section>
 
-      <footer dir={isArabic ? "rtl" : "ltr"} className="border-t border-blue-500/10 py-8 px-6 bg-[#030014]">
-        <div className={`max-w-7xl mx-auto ${isArabic ? "text-right" : "text-left"}`}>
+      <footer
+        dir={layoutRtl ? "rtl" : "ltr"}
+        className="border-t border-blue-500/10 py-8 px-6 bg-[#030014]"
+      >
+        <div
+          className={`max-w-7xl mx-auto ${layoutRtl ? "text-right" : "text-left"}`}
+        >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             <div className="md:col-span-1">
               <Link

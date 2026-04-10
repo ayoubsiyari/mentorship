@@ -131,17 +131,6 @@ export default function NinjaTraderPage() {
     [isArabic]
   );
 
-  React.useEffect(() => {
-    const prevDir = document.documentElement.dir;
-    const prevLang = document.documentElement.lang;
-    document.documentElement.dir = "ltr";
-    document.documentElement.lang = "en";
-    return () => {
-      document.documentElement.dir = prevDir;
-      document.documentElement.lang = prevLang;
-    };
-  }, []);
-
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const closeTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -172,7 +161,11 @@ export default function NinjaTraderPage() {
   }, [dropdownOpen]);
 
   return (
-    <main className="relative min-h-screen bg-[#030014] overflow-x-hidden">
+    <main
+      dir="ltr"
+      lang="en"
+      className="relative min-h-screen bg-[#030014] overflow-x-hidden text-left"
+    >
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-black via-[#030014] to-[#0a0a1a]" />
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent" />
 
@@ -420,7 +413,7 @@ export default function NinjaTraderPage() {
         </div>
       </section>
 
-      <SiteDisclosuresFooter />
+      <SiteDisclosuresFooter forceLtr />
     </main>
   );
 }
