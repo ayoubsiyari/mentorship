@@ -22,6 +22,9 @@ const zain = localFont({
 export const metadata: Metadata = {
   title: "Talaria - Professional Trading Platform",
   description: "Advanced charting and backtesting platform for professional traders",
+  other: {
+    "impact-site-verification": "1d03ebf8-2524-48bf-970a-fdebe0f8a5fc",
+  },
 };
 
 export default function RootLayout({
