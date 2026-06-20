@@ -263,7 +263,7 @@ export default function HomePage() {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [dropdownOpen]);
-
+<meta name='impact-site-verification' value='1d03ebf8-2524-48bf-970a-fdebe0f8a5fc'>
   return (
     <main className="min-h-screen bg-[#030014] overflow-hidden">
       {/* Hero Section */}
