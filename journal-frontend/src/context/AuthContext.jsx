@@ -39,6 +39,9 @@ export const AuthProvider = ({ children }) => {
           // Set admin login session flag
           localStorage.setItem('admin_login_session', 'true');
           
+          // Clear cached profile from admin session so target user's profiles load fresh
+          localStorage.removeItem('talaria_activeProfile');
+          
           // Remove the admin_login parameter from URL
           const newUrl = window.location.pathname;
           window.history.replaceState({}, document.title, newUrl);

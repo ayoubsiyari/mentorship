@@ -105,6 +105,7 @@ export default function Settings() {
   const [systemHealth, setSystemHealth] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [pagination, setPagination] = useState({ page: 1, per_page: 10000, total: 0 });
+  const [userSortOrder, setUserSortOrder] = useState('journals-desc');
   
   // Advanced admin features
   const [selectedUser, setSelectedUser] = useState(null);
@@ -539,28 +540,69 @@ export default function Settings() {
         user: data.user
       };
       
+      // Clear cached profile so the impersonated session loads the target user's profiles
+      localStorage.removeItem('talaria_activeProfile');
+      
       // Create a unique key for this login session
       const sessionKey = `admin_login_${Date.now()}`;
       localStorage.setItem(sessionKey, JSON.stringify(loginData));
       
-      // Open new private window with the login data
+      const journalBase = process.env.PUBLIC_URL || '/journal';
+      const loginUrl = `${window.location.origin}${journalBase}/dashboard?admin_login=${encodeURIComponent(sessionKey)}`;
+      
       const newWindow = window.open(
-        `${window.location.origin}?admin_login=${sessionKey}`,
+        loginUrl,
         '_blank',
         'width=1200,height=800,scrollbars=yes,resizable=yes'
       );
       
-                 if (newWindow) {
-             // Clear the session key after a longer delay to ensure the new window has time to process it
-             setTimeout(() => {
-               localStorage.removeItem(sessionKey);
-             }, 10000);
-           }
+      if (newWindow) {
+        setTimeout(() => {
+          localStorage.removeItem(sessionKey);
+        }, 30000);
+      }
       
     } catch (err) {
       setMsg(err.message);
     }
   };
+
+  const sortUsers = (userList) => {
+    const sorted = [...userList];
+    const getJournals = (u) => u.journals_count ?? u.profiles_count ?? 0;
+    const getTrades = (u) => u.trades_count ?? 0;
+
+    switch (userSortOrder) {
+      case 'journals-desc':
+        return sorted.sort((a, b) => getJournals(b) - getJournals(a) || getTrades(b) - getTrades(a));
+      case 'journals-asc':
+        return sorted.sort((a, b) => getJournals(a) - getJournals(b));
+      case 'trades-desc':
+        return sorted.sort((a, b) => getTrades(b) - getTrades(a) || getJournals(b) - getJournals(a));
+      case 'trades-asc':
+        return sorted.sort((a, b) => getTrades(a) - getTrades(b));
+      case 'name-asc':
+        return sorted.sort((a, b) => (a.full_name || a.email || '').localeCompare(b.full_name || b.email || ''));
+      case 'name-desc':
+        return sorted.sort((a, b) => (b.full_name || b.email || '').localeCompare(a.full_name || a.email || ''));
+      default:
+        return sorted;
+    }
+  };
+
+  const filterUsersByType = (userList) => userList.filter(user => {
+    if (userTypeFilter === 'journal') return user.has_journal_access;
+    if (userTypeFilter === 'no-journal') return !user.has_journal_access && user.user_source !== 'talaria-prop' && user.user_source !== 'hermes-website';
+    if (userTypeFilter === 'mentorship') return bootcampEmails.includes(user.email?.toLowerCase());
+    if (userTypeFilter === 'talaria-prop') return user.user_source === 'talaria-prop';
+    if (userTypeFilter === 'hermes-website') return user.user_source === 'hermes-website';
+    if (userTypeFilter === 'duplicates') {
+      const emailCounts = {};
+      users.forEach(u => { emailCounts[u.email?.toLowerCase()] = (emailCounts[u.email?.toLowerCase()] || 0) + 1; });
+      return emailCounts[user.email?.toLowerCase()] > 1;
+    }
+    return true;
+  });
 
   const getMessageType = () => {
     if (msg.includes('successfully')) return 'success';
@@ -1789,6 +1831,19 @@ export default function Settings() {
                         </button>
                       </form>
                       <div className="flex gap-2">
+                        <select
+                          value={userSortOrder}
+                          onChange={(e) => setUserSortOrder(e.target.value)}
+                          className="px-3 py-2 bg-[#0a1628] border border-[#2d4a6f] text-gray-300 rounded-lg text-sm focus:border-blue-500 focus:outline-none"
+                          title="Sort users"
+                        >
+                          <option value="journals-desc">Most Journals</option>
+                          <option value="journals-asc">Fewest Journals</option>
+                          <option value="trades-desc">Most Trades</option>
+                          <option value="trades-asc">Fewest Trades</option>
+                          <option value="name-asc">Name A-Z</option>
+                          <option value="name-desc">Name Z-A</option>
+                        </select>
                         <button onClick={exportUsers} className="px-3 py-2 bg-[#0a1628] border border-[#2d4a6f] text-gray-400 rounded-lg text-sm hover:text-white">
                           Export
                         </button>
@@ -1881,20 +1936,7 @@ export default function Settings() {
                       </div>
                     ) : (
                       <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                        {users
-                          .filter(user => {
-                            if (userTypeFilter === 'journal') return user.has_journal_access;
-                            if (userTypeFilter === 'no-journal') return !user.has_journal_access && user.user_source !== 'talaria-prop' && user.user_source !== 'hermes-website';
-                            if (userTypeFilter === 'mentorship') return bootcampEmails.includes(user.email?.toLowerCase());
-                            if (userTypeFilter === 'talaria-prop') return user.user_source === 'talaria-prop';
-                            if (userTypeFilter === 'hermes-website') return user.user_source === 'hermes-website';
-                            if (userTypeFilter === 'duplicates') {
-                              const emailCounts = {};
-                              users.forEach(u => { emailCounts[u.email?.toLowerCase()] = (emailCounts[u.email?.toLowerCase()] || 0) + 1; });
-                              return emailCounts[user.email?.toLowerCase()] > 1;
-                            }
-                            return true;
-                          })
+                        {sortUsers(filterUsersByType(users))
                           .map(user => (
                           <div key={user.id} className="bg-[#0a1628] rounded-lg p-4 border border-[#2d4a6f] hover:border-blue-500/50 transition-all">
                             <div className="flex items-center justify-between gap-3">
