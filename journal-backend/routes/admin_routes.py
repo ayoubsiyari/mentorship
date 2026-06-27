@@ -215,9 +215,29 @@ def list_users():
         pagination = query.order_by(User.id.desc()).paginate(
             page=page, per_page=per_page, error_out=False
         )
+
+        user_ids = [user.id for user in pagination.items]
+        profile_counts = {}
+        trade_counts = {}
+        if user_ids:
+            from sqlalchemy import func
+            profile_counts = dict(
+                db.session.query(Profile.user_id, func.count(Profile.id))
+                .filter(Profile.user_id.in_(user_ids))
+                .group_by(Profile.user_id)
+                .all()
+            )
+            trade_counts = dict(
+                db.session.query(JournalEntry.user_id, func.count(JournalEntry.id))
+                .filter(JournalEntry.user_id.in_(user_ids))
+                .group_by(JournalEntry.user_id)
+                .all()
+            )
         
         users = []
         for user in pagination.items:
+            journals_count = profile_counts.get(user.id, 0)
+            trades_count = trade_counts.get(user.id, 0)
             # Return complete user information for admin interface
             users.append({
                 "id": user.id,
@@ -233,8 +253,9 @@ def list_users():
                 "created_at": user.created_at.isoformat() if user.created_at else None,
                 "updated_at": user.updated_at.isoformat() if user.updated_at else None,
                 # Additional computed fields
-                "profiles_count": len(user.profiles),
-                "trades_count": len(user.journal_entries),
+                "profiles_count": journals_count,
+                "journals_count": journals_count,
+                "trades_count": trades_count,
                 "last_activity": user.updated_at.isoformat() if user.updated_at else None
             })
         
@@ -288,7 +309,7 @@ def get_user_details(user_id):
             "updated_at": user.updated_at.isoformat() if user.updated_at else None,
             "profiles_count": len(profiles),
             "trades_count": JournalEntry.query.filter_by(user_id=user_id).count(),
-            "journals_count": JournalEntry.query.filter_by(user_id=user_id).count(),
+            "journals_count": len(profiles),
             "profiles": [
                 {
                     "id": profile.id,

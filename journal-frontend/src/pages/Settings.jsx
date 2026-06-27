@@ -60,7 +60,9 @@ import {
   CheckCircle,
   UserCheck,
   AlertTriangle,
-  Ban
+  Ban,
+  BookOpen,
+  LogIn
 } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, Legend as ReLegend } from 'recharts';
 import BulkUserImport from '../components/BulkUserImport';
@@ -1895,7 +1897,7 @@ export default function Settings() {
                           })
                           .map(user => (
                           <div key={user.id} className="bg-[#0a1628] rounded-lg p-4 border border-[#2d4a6f] hover:border-blue-500/50 transition-all">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <input
                                   type="checkbox"
@@ -1907,7 +1909,7 @@ export default function Settings() {
                                   {(user.full_name || user.email).charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-sm font-medium text-white truncate">{user.full_name || 'No Name'}</span>
                                     {user.is_admin && <span className="text-xs text-yellow-400">Admin</span>}
                                     {user.has_journal_access ? (
@@ -1916,17 +1918,29 @@ export default function Settings() {
                                       <span className="text-xs text-purple-400">user</span>
                                     )}
                                   </div>
-                                  <button
-                                    onClick={() => loginAsUser(user.id)}
-                                    className="text-xs text-gray-500 hover:text-blue-400 truncate block"
-                                  >
-                                    {user.email}
-                                  </button>
+                                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <button onClick={() => loginAsUser(user.id)} className="p-2 text-gray-500 hover:text-white" title="Login as">
-                                  <User className="w-4 h-4" />
+                              <div className="hidden sm:flex items-center gap-3 shrink-0">
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1e3a5f] border border-[#2d4a6f]" title="Trading journals">
+                                  <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+                                  <span className="text-xs text-gray-300">{user.journals_count ?? user.profiles_count ?? 0}</span>
+                                  <span className="text-xs text-gray-500">Journals</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1e3a5f] border border-[#2d4a6f]" title="Trades logged">
+                                  <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+                                  <span className="text-xs text-gray-300">{user.trades_count ?? 0}</span>
+                                  <span className="text-xs text-gray-500">Trades</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={() => loginAsUser(user.id)}
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-blue-400 hover:text-white hover:bg-blue-500/20 rounded-md border border-blue-500/30 transition-colors"
+                                  title="Login as this user"
+                                >
+                                  <LogIn className="w-3.5 h-3.5" />
+                                  <span className="hidden md:inline">Login</span>
                                 </button>
                                 <button onClick={() => handleEditUser(user)} className="p-2 text-gray-500 hover:text-blue-400" title="Edit">
                                   <Edit className="w-4 h-4" />
@@ -1939,6 +1953,18 @@ export default function Settings() {
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
+                              </div>
+                            </div>
+                            <div className="flex sm:hidden items-center gap-3 mt-3 ml-11">
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1e3a5f] border border-[#2d4a6f]">
+                                <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+                                <span className="text-xs text-gray-300">{user.journals_count ?? user.profiles_count ?? 0}</span>
+                                <span className="text-xs text-gray-500">Journals</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1e3a5f] border border-[#2d4a6f]">
+                                <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+                                <span className="text-xs text-gray-300">{user.trades_count ?? 0}</span>
+                                <span className="text-xs text-gray-500">Trades</span>
                               </div>
                             </div>
                           </div>
