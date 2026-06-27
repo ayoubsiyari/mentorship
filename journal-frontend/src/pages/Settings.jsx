@@ -127,6 +127,8 @@ export default function Settings() {
   const [bulkActions, setBulkActions] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
+  const [downloadingJournals, setDownloadingJournals] = useState(false);
+  const MIN_TRADES_FOR_JOURNAL_EXPORT = 70;
   const [systemMetrics, setSystemMetrics] = useState({
     cpu: 0,
     memory: 0,
@@ -1072,6 +1074,80 @@ export default function Settings() {
     setSelectedUsers([]);
   };
 
+  const getEligibleJournalUsers = (userList = users) =>
+    userList.filter(u => (u.trades_count ?? 0) > MIN_TRADES_FOR_JOURNAL_EXPORT);
+
+  const getSelectedEligibleJournalUsers = () =>
+    users.filter(u => selectedUsers.includes(u.id) && (u.trades_count ?? 0) > MIN_TRADES_FOR_JOURNAL_EXPORT);
+
+  const selectEligibleJournalUsers = () => {
+    const eligibleIds = getEligibleJournalUsers(sortUsers(filterUsersByType(users))).map(u => u.id);
+    setSelectedUsers(eligibleIds);
+  };
+
+  const downloadSelectedJournals = async () => {
+    if (selectedUsers.length === 0) {
+      setMsg('Please select at least one user.');
+      return;
+    }
+
+    const eligibleCount = getSelectedEligibleJournalUsers().length;
+    if (eligibleCount === 0) {
+      setMsg(`None of the selected users have more than ${MIN_TRADES_FOR_JOURNAL_EXPORT} trades.`);
+      return;
+    }
+
+    const skippedCount = selectedUsers.length - eligibleCount;
+    const confirmMessage = skippedCount > 0
+      ? `Download journals for ${eligibleCount} user(s) with more than ${MIN_TRADES_FOR_JOURNAL_EXPORT} trades?\n\n${skippedCount} selected user(s) will be skipped (not enough trades).`
+      : `Download journals for ${eligibleCount} user(s)?`;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    setDownloadingJournals(true);
+    setMsg('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE_URL}/admin/users/export-journals`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_ids: selectedUsers,
+          min_trades: MIN_TRADES_FOR_JOURNAL_EXPORT
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to download journals');
+      }
+
+      const blob = await res.blob();
+      if (blob.size === 0) {
+        throw new Error('Download returned an empty file');
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `user-journals-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      setMsg(`Successfully downloaded journals for ${eligibleCount} user(s)!`);
+    } catch (err) {
+      setMsg(err.message || 'Error downloading journals');
+    } finally {
+      setDownloadingJournals(false);
+    }
+  };
+
   const handleNewCountrySelect = (countryData) => {
     setNewSelectedCountry(countryData);
     setNewCountry(countryData.name);
@@ -1922,6 +1998,45 @@ export default function Settings() {
                           return users.filter(u => emailCounts[u.email?.toLowerCase()] > 1).length;
                         })()})
                       </button>
+                    </div>
+
+                    {/* Selection toolbar */}
+                    <div className="flex flex-wrap items-center gap-2 p-3 bg-[#1e3a5f] border border-[#2d4a6f] rounded-lg">
+                      <span className="text-sm text-gray-300">
+                        {selectedUsers.length} selected
+                      </span>
+                      <span className="text-sm text-green-400">
+                        {getSelectedEligibleJournalUsers().length} eligible (&gt;{MIN_TRADES_FOR_JOURNAL_EXPORT} trades)
+                      </span>
+                      <div className="flex flex-wrap gap-2 ml-auto">
+                        <button
+                          onClick={() => setSelectedUsers(sortUsers(filterUsersByType(users)).map(u => u.id))}
+                          className="px-3 py-1.5 text-xs bg-[#0a1628] border border-[#2d4a6f] text-gray-400 rounded-lg hover:text-white"
+                        >
+                          Select Visible
+                        </button>
+                        <button
+                          onClick={selectEligibleJournalUsers}
+                          className="px-3 py-1.5 text-xs bg-[#0a1628] border border-[#2d4a6f] text-green-400 rounded-lg hover:text-green-300"
+                        >
+                          Select Eligible (70+)
+                        </button>
+                        <button
+                          onClick={clearUserSelection}
+                          disabled={selectedUsers.length === 0}
+                          className="px-3 py-1.5 text-xs bg-[#0a1628] border border-[#2d4a6f] text-gray-400 rounded-lg hover:text-white disabled:opacity-50"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          onClick={downloadSelectedJournals}
+                          disabled={downloadingJournals || getSelectedEligibleJournalUsers().length === 0}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          {downloadingJournals ? 'Downloading...' : 'Download Journals'}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Users List */}
