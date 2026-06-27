@@ -1099,8 +1099,8 @@ export default function Settings() {
 
     const skippedCount = selectedUsers.length - eligibleCount;
     const confirmMessage = skippedCount > 0
-      ? `Download journals for ${eligibleCount} user(s) with more than ${MIN_TRADES_FOR_JOURNAL_EXPORT} trades?\n\n${skippedCount} selected user(s) will be skipped (not enough trades).`
-      : `Download journals for ${eligibleCount} user(s)?`;
+      ? `Download a ZIP with separate journal files for ${eligibleCount} user(s)?\n\nEach journal with more than ${MIN_TRADES_FOR_JOURNAL_EXPORT} trades gets its own trading_journal_complete.xlsx file (same as Export All Data).\n\n${skippedCount} selected user(s) have no qualifying journals and will be skipped.`
+      : `Download a ZIP with separate journal files?\n\nEach journal with more than ${MIN_TRADES_FOR_JOURNAL_EXPORT} trades gets its own trading_journal_complete.xlsx file (same as Export All Data).`;
 
     if (!window.confirm(confirmMessage)) return;
 
@@ -1134,13 +1134,13 @@ export default function Settings() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `user-journals-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `user-journals-${new Date().toISOString().split('T')[0]}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      setMsg(`Successfully downloaded journals for ${eligibleCount} user(s)!`);
+      setMsg(`Successfully downloaded ${eligibleCount} user journal export(s) as a ZIP!`);
     } catch (err) {
       setMsg(err.message || 'Error downloading journals');
     } finally {
@@ -2006,7 +2006,7 @@ export default function Settings() {
                         {selectedUsers.length} selected
                       </span>
                       <span className="text-sm text-green-400">
-                        {getSelectedEligibleJournalUsers().length} eligible (&gt;{MIN_TRADES_FOR_JOURNAL_EXPORT} trades)
+                        {getSelectedEligibleJournalUsers().length} users with 70+ trades
                       </span>
                       <div className="flex flex-wrap gap-2 ml-auto">
                         <button
@@ -2034,7 +2034,7 @@ export default function Settings() {
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          {downloadingJournals ? 'Downloading...' : 'Download Journals'}
+                          {downloadingJournals ? 'Downloading...' : 'Download Journals (ZIP)'}
                         </button>
                       </div>
                     </div>

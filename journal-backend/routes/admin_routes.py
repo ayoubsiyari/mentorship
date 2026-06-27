@@ -20,117 +20,18 @@ import os
 import csv
 import io
 import subprocess
-import json
 import re
+import zipfile
 
 admin_bp = Blueprint('admin', __name__)
 
 MIN_JOURNAL_TRADES_FOR_EXPORT = 70
 
 
-def _safe_excel_sheet_name(name, used_names):
-    """Excel sheet names: max 31 chars, no special characters."""
-    safe = re.sub(r'[\[\]:*?/\\]', '', str(name or 'User'))[:31]
-    if not safe:
-        safe = 'User'
-    base = safe
-    counter = 1
-    while safe in used_names:
-        suffix = f'_{counter}'
-        safe = base[:31 - len(suffix)] + suffix
-        counter += 1
-    used_names.add(safe)
-    return safe
-
-
-def _journal_entry_to_export_row(entry, user_email='', user_name='', profile_name=''):
-    """Build a flat dict for Excel export from a journal entry."""
-    entry_datetime = entry.open_time.strftime('%Y-%m-%d %H:%M:%S') if entry.open_time else ''
-    exit_datetime = entry.close_time.strftime('%Y-%m-%d %H:%M:%S') if entry.close_time else ''
-    created_at = entry.created_at.strftime('%Y-%m-%d %H:%M:%S') if entry.created_at else ''
-    updated_at = entry.updated_at.strftime('%Y-%m-%d %H:%M:%S') if entry.updated_at else ''
-    trade_date = entry.date.strftime('%Y-%m-%d %H:%M:%S') if entry.date else ''
-
-    variables_str = ''
-    if entry.variables:
-        try:
-            variables_str = json.dumps(entry.variables)
-        except Exception:
-            variables_str = str(entry.variables)
-
-    extra_data_str = ''
-    if entry.extra_data:
-        try:
-            extra_data_str = json.dumps(entry.extra_data)
-        except Exception:
-            extra_data_str = str(entry.extra_data)
-
-    var1 = entry.extra_data.get('var1', '') if entry.extra_data else ''
-    var2 = entry.extra_data.get('var2', '') if entry.extra_data else ''
-    var3 = entry.extra_data.get('var3', '') if entry.extra_data else ''
-    var4 = entry.extra_data.get('var4', '') if entry.extra_data else ''
-    var5 = entry.extra_data.get('var5', '') if entry.extra_data else ''
-    var6 = entry.extra_data.get('var6', '') if entry.extra_data else ''
-    var7 = entry.extra_data.get('var7', '') if entry.extra_data else ''
-    var8 = entry.extra_data.get('var8', '') if entry.extra_data else ''
-    var9 = entry.extra_data.get('var9', '') if entry.extra_data else ''
-    var10 = entry.extra_data.get('var10', '') if entry.extra_data else ''
-
-    setup = ''
-    strategy_var = ''
-    if entry.variables:
-        setup = ', '.join(entry.variables.get('setup', [])) if entry.variables.get('setup') else ''
-        strategy_var = ', '.join(entry.variables.get('strategy', [])) if entry.variables.get('strategy') else ''
-
-    return {
-        'user_email': user_email,
-        'user_name': user_name,
-        'profile_name': profile_name,
-        'symbol': entry.symbol,
-        'direction': entry.direction,
-        'entry_price': entry.entry_price,
-        'exit_price': entry.exit_price,
-        'stop_loss': entry.stop_loss,
-        'take_profit': entry.take_profit,
-        'high_price': entry.high_price,
-        'low_price': entry.low_price,
-        'quantity': entry.quantity,
-        'contract_size': entry.contract_size,
-        'instrument_type': entry.instrument_type,
-        'risk_amount': entry.risk_amount,
-        'pnl': entry.pnl,
-        'rr': entry.rr,
-        'strategy': entry.strategy or strategy_var,
-        'setup': entry.setup or setup,
-        'notes': entry.notes,
-        'entry_datetime': entry_datetime,
-        'exit_datetime': exit_datetime,
-        'trade_date': trade_date,
-        'created_at': created_at,
-        'updated_at': updated_at,
-        'duration_seconds': entry.duration_seconds,
-        'duration_minutes': entry.duration_minutes,
-        'duration_hours': entry.duration_hours,
-        'duration_category': entry.duration_category,
-        'commission': entry.commission,
-        'slippage': entry.slippage,
-        'entry_screenshot': entry.entry_screenshot,
-        'exit_screenshot': entry.exit_screenshot,
-        'var1': var1,
-        'var2': var2,
-        'var3': var3,
-        'var4': var4,
-        'var5': var5,
-        'var6': var6,
-        'var7': var7,
-        'var8': var8,
-        'var9': var9,
-        'var10': var10,
-        'variables_json': variables_str,
-        'extra_data_json': extra_data_str,
-        'id': entry.id,
-        'import_batch_id': entry.import_batch_id,
-    }
+def _safe_filename_part(value, fallback='journal'):
+    """Sanitize a string for use in downloaded filenames."""
+    safe = re.sub(r'[^\w\-.@]', '_', str(value or fallback)).strip('._')
+    return safe[:80] if safe else fallback
 
 # Setup logging for admin actions
 admin_logger = logging.getLogger('admin_actions')
@@ -966,15 +867,17 @@ def export_users():
 @rate_limit_admin(max_requests=5, window_seconds=120)
 def export_user_journals():
     """
-    Admin-only: Export journal trades for selected users.
-    Only users with more than min_trades (default 70) are included.
+    Admin-only: Export journal trades for selected users as a ZIP.
+    Each qualifying journal (profile) becomes its own trading_journal_complete.xlsx
+    file — identical to the user clicking Export All Data on the Journal page.
+    Only journals with more than min_trades (default 70) are included.
     Expects JSON: { user_ids: [...], min_trades: 70 }
     """
     if not is_admin_user():
         return jsonify({"error": "Only admins can export journals"}), 403
 
     try:
-        import pandas as pd
+        from journal_export import create_journal_xlsx_bytes
 
         data = request.get_json() or {}
         user_ids = data.get('user_ids', [])
@@ -983,90 +886,99 @@ def export_user_journals():
         if not user_ids:
             return jsonify({"error": "No users selected"}), 400
 
-        qualifying_users = []
-        skipped_users = []
+        exported_files = []
+        skipped_items = []
 
-        for user_id in user_ids:
-            user = User.query.get(user_id)
-            if not user:
-                skipped_users.append({
-                    "id": user_id,
-                    "email": "",
-                    "trades_count": 0,
-                    "reason": "User not found"
-                })
-                continue
+        zip_buffer = io.BytesIO()
+        used_filenames = set()
 
-            trade_count = JournalEntry.query.filter_by(user_id=user_id).count()
-            if trade_count <= min_trades:
-                skipped_users.append({
-                    "id": user.id,
-                    "email": user.email,
-                    "trades_count": trade_count,
-                    "reason": f"Only {trade_count} trades (requires more than {min_trades})"
-                })
-                continue
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for user_id in user_ids:
+                user = User.query.get(user_id)
+                if not user:
+                    skipped_items.append({
+                        "user_email": "",
+                        "journal_name": "",
+                        "trades_count": 0,
+                        "reason": "User not found"
+                    })
+                    continue
 
-            qualifying_users.append((user, trade_count))
+                profiles = Profile.query.filter_by(user_id=user.id).all()
+                if not profiles:
+                    skipped_items.append({
+                        "user_email": user.email,
+                        "journal_name": "",
+                        "trades_count": 0,
+                        "reason": "No journals found"
+                    })
+                    continue
 
-        if not qualifying_users:
+                for profile in profiles:
+                    entries = JournalEntry.query.filter_by(
+                        user_id=user.id,
+                        profile_id=profile.id
+                    ).order_by(JournalEntry.date.asc()).all()
+                    trade_count = len(entries)
+
+                    if trade_count <= min_trades:
+                        skipped_items.append({
+                            "user_email": user.email,
+                            "journal_name": profile.name,
+                            "trades_count": trade_count,
+                            "reason": f"Only {trade_count} trades (requires more than {min_trades})"
+                        })
+                        continue
+
+                    xlsx_bytes = create_journal_xlsx_bytes(entries)
+                    email_part = _safe_filename_part(user.email.split('@')[0], 'user')
+                    journal_part = _safe_filename_part(profile.name, 'journal')
+                    base_name = f"{email_part}_{journal_part}_trading_journal_complete.xlsx"
+                    filename = base_name
+                    counter = 1
+                    while filename in used_filenames:
+                        filename = f"{email_part}_{journal_part}_{counter}_trading_journal_complete.xlsx"
+                        counter += 1
+                    used_filenames.add(filename)
+
+                    zf.writestr(filename, xlsx_bytes)
+                    exported_files.append({
+                        "filename": filename,
+                        "user_email": user.email,
+                        "journal_name": profile.name,
+                        "trades_count": trade_count
+                    })
+
+            summary_lines = ["status,user_email,journal_name,trades_count,filename,reason"]
+            for item in exported_files:
+                summary_lines.append(
+                    f"exported,{item['user_email']},{item['journal_name']},{item['trades_count']},{item['filename']},"
+                )
+            for item in skipped_items:
+                summary_lines.append(
+                    f"skipped,{item.get('user_email', '')},{item.get('journal_name', '')},"
+                    f"{item.get('trades_count', 0)},,\"{item.get('reason', '')}\""
+                )
+            zf.writestr('_export_summary.csv', '\n'.join(summary_lines))
+
+        if not exported_files:
             return jsonify({
-                "error": f"No selected users have more than {min_trades} trades",
-                "skipped": skipped_users
+                "error": f"No journals with more than {min_trades} trades found for selected users",
+                "skipped": skipped_items
             }), 400
 
-        output = io.BytesIO()
-        used_sheet_names = set()
-
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            summary_rows = []
-            for user, trade_count in qualifying_users:
-                summary_rows.append({
-                    "status": "exported",
-                    "email": user.email,
-                    "name": user.full_name or "",
-                    "trades_count": trade_count
-                })
-            for skipped in skipped_users:
-                summary_rows.append({
-                    "status": "skipped",
-                    "email": skipped.get("email", ""),
-                    "name": "",
-                    "trades_count": skipped.get("trades_count", 0),
-                    "reason": skipped.get("reason", "")
-                })
-            pd.DataFrame(summary_rows).to_excel(writer, index=False, sheet_name='Summary')
-            used_sheet_names.add('Summary')
-
-            for user, _ in qualifying_users:
-                entries = JournalEntry.query.filter_by(user_id=user.id).order_by(JournalEntry.date.asc()).all()
-                profile_names = {
-                    p.id: p.name for p in Profile.query.filter_by(user_id=user.id).all()
-                }
-                rows = [
-                    _journal_entry_to_export_row(
-                        entry,
-                        user_email=user.email,
-                        user_name=user.full_name or '',
-                        profile_name=profile_names.get(entry.profile_id, '')
-                    )
-                    for entry in entries
-                ]
-                sheet_name = _safe_excel_sheet_name(user.email.split('@')[0], used_sheet_names)
-                pd.DataFrame(rows).to_excel(writer, index=False, sheet_name=sheet_name)
-
-        output.seek(0)
+        zip_buffer.seek(0)
 
         log_admin_action(
             "EXPORT_USER_JOURNALS",
-            f"Exported journals for {len(qualifying_users)} users (min_trades>{min_trades}), skipped {len(skipped_users)}"
+            f"Exported {len(exported_files)} journal files (min_trades>{min_trades}), skipped {len(skipped_items)}"
         )
 
         return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            zip_buffer,
+            mimetype='application/zip',
             as_attachment=True,
-            download_name=f'user-journals-export-{datetime.now().strftime("%Y%m%d-%H%M%S")}.xlsx'
+            download_name=f'user-journals-export-{datetime.now().strftime("%Y%m%d-%H%M%S")}.zip'
         )
 
     except Exception as e:

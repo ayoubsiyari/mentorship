@@ -2113,121 +2113,12 @@ def export_entries():
                 profile_id=profile_id
             ).order_by(JournalEntry.date.asc()).all()
 
-        rows = []
-        for e in entries:
-            # Format datetime fields
-            entry_datetime = e.open_time.strftime('%Y-%m-%d %H:%M:%S') if e.open_time else ''
-            exit_datetime = e.close_time.strftime('%Y-%m-%d %H:%M:%S') if e.close_time else ''
-            created_at = e.created_at.strftime('%Y-%m-%d %H:%M:%S') if e.created_at else ''
-            updated_at = e.updated_at.strftime('%Y-%m-%d %H:%M:%S') if e.updated_at else ''
-            trade_date = e.date.strftime('%Y-%m-%d %H:%M:%S') if e.date else ''
-            
-            # Format variables as string if they exist
-            variables_str = ''
-            if e.variables:
-                try:
-                    variables_str = json.dumps(e.variables)
-                except:
-                    variables_str = str(e.variables)
-            
-            # Format extra_data as string if it exists
-            extra_data_str = ''
-            if e.extra_data:
-                try:
-                    extra_data_str = json.dumps(e.extra_data)
-                except:
-                    extra_data_str = str(e.extra_data)
-            
-            # Extract custom variables from extra_data if they exist
-            var1 = e.extra_data.get('var1', '') if e.extra_data else ''
-            var2 = e.extra_data.get('var2', '') if e.extra_data else ''
-            var3 = e.extra_data.get('var3', '') if e.extra_data else ''
-            var4 = e.extra_data.get('var4', '') if e.extra_data else ''
-            var5 = e.extra_data.get('var5', '') if e.extra_data else ''
-            var6 = e.extra_data.get('var6', '') if e.extra_data else ''
-            var7 = e.extra_data.get('var7', '') if e.extra_data else ''
-            var8 = e.extra_data.get('var8', '') if e.extra_data else ''
-            var9 = e.extra_data.get('var9', '') if e.extra_data else ''
-            var10 = e.extra_data.get('var10', '') if e.extra_data else ''
-            
-            # Extract variables from variables field
-            setup = ''
-            strategy_var = ''
-            if e.variables:
-                setup = ', '.join(e.variables.get('setup', [])) if e.variables.get('setup') else ''
-                strategy_var = ', '.join(e.variables.get('strategy', [])) if e.variables.get('strategy') else ''
-            
-            rows.append({
-                # Core trade data
-                'symbol': e.symbol,
-                'direction': e.direction,
-                'entry_price': e.entry_price,
-                'exit_price': e.exit_price,
-                'stop_loss': e.stop_loss,
-                'take_profit': e.take_profit,
-                'high_price': e.high_price,
-                'low_price': e.low_price,
-                'quantity': e.quantity,
-                'contract_size': e.contract_size,
-                'instrument_type': e.instrument_type,
-                'risk_amount': e.risk_amount,
-                'pnl': e.pnl,
-                'rr': e.rr,
-                
-                # Strategy and setup
-                'strategy': e.strategy or strategy_var,
-                'setup': e.setup or setup,
-                'notes': e.notes,
-                
-                # Dates and times
-                'entry_datetime': entry_datetime,
-                'exit_datetime': exit_datetime,
-                'trade_date': trade_date,
-                'created_at': created_at,
-                'updated_at': updated_at,
-                
-                # Duration fields
-                'duration_seconds': e.duration_seconds,
-                'duration_minutes': e.duration_minutes,
-                'duration_hours': e.duration_hours,
-                'duration_category': e.duration_category,
-                
-                # Financial fields
-                'commission': e.commission,
-                'slippage': e.slippage,
-                
-                # Screenshots
-                'entry_screenshot': e.entry_screenshot,
-                'exit_screenshot': e.exit_screenshot,
-                
-                # Custom variables
-                'var1': var1,
-                'var2': var2,
-                'var3': var3,
-                'var4': var4,
-                'var5': var5,
-                'var6': var6,
-                'var7': var7,
-                'var8': var8,
-                'var9': var9,
-                'var10': var10,
-                
-                # Raw data (for advanced users)
-                'variables_json': variables_str,
-                'extra_data_json': extra_data_str,
-                
-                # Metadata
-                'id': e.id,
-                'import_batch_id': e.import_batch_id,
-            })
+        from journal_export import create_journal_xlsx_bytes
 
         print(f"Export: Processing {len(entries)} entries for user {user_id}")
-        print(f"Export: Created {len(rows)} rows for export")
-        
-        df = pd.DataFrame(rows)
+
         output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Journal')
+        output.write(create_journal_xlsx_bytes(entries))
         output.seek(0)
         
         print(f"Export: Excel file created successfully, size: {len(output.getvalue())} bytes")
