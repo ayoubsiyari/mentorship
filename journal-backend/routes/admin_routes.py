@@ -864,7 +864,7 @@ def export_users():
 
 @admin_bp.route('/users/export-journals', methods=['POST'])
 @jwt_required()
-@rate_limit_admin(max_requests=5, window_seconds=120)
+@rate_limit_admin(max_requests=3, window_seconds=300)
 def export_user_journals():
     """
     Admin-only: Export journal trades for selected users as a ZIP.
@@ -878,100 +878,91 @@ def export_user_journals():
 
     try:
         from journal_export import create_journal_xlsx_bytes
+        from sqlalchemy import func
 
         data = request.get_json() or {}
-        user_ids = data.get('user_ids', [])
+        raw_user_ids = data.get('user_ids', [])
         min_trades = int(data.get('min_trades', MIN_JOURNAL_TRADES_FOR_EXPORT))
 
+        user_ids = list({int(uid) for uid in raw_user_ids if uid is not None})
         if not user_ids:
             return jsonify({"error": "No users selected"}), 400
 
-        exported_files = []
-        skipped_items = []
+        qualifying_profiles = db.session.query(
+            JournalEntry.user_id,
+            JournalEntry.profile_id,
+            func.count(JournalEntry.id).label('trade_count')
+        ).filter(
+            JournalEntry.user_id.in_(user_ids)
+        ).group_by(
+            JournalEntry.user_id,
+            JournalEntry.profile_id
+        ).having(
+            func.count(JournalEntry.id) > min_trades
+        ).all()
 
+        if not qualifying_profiles:
+            return jsonify({
+                "error": f"No journals with more than {min_trades} trades found for selected users"
+            }), 400
+
+        qual_user_ids = {row.user_id for row in qualifying_profiles}
+        qual_profile_ids = {row.profile_id for row in qualifying_profiles}
+        users_map = {
+            u.id: u for u in User.query.filter(User.id.in_(qual_user_ids)).all()
+        }
+        profiles_map = {
+            p.id: p for p in Profile.query.filter(Profile.id.in_(qual_profile_ids)).all()
+        }
+
+        exported_files = []
         zip_buffer = io.BytesIO()
         used_filenames = set()
 
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
-            for user_id in user_ids:
-                user = User.query.get(user_id)
-                if not user:
-                    skipped_items.append({
-                        "user_email": "",
-                        "journal_name": "",
-                        "trades_count": 0,
-                        "reason": "User not found"
-                    })
+            for row in qualifying_profiles:
+                user = users_map.get(row.user_id)
+                profile = profiles_map.get(row.profile_id)
+                if not user or not profile:
                     continue
 
-                profiles = Profile.query.filter_by(user_id=user.id).all()
-                if not profiles:
-                    skipped_items.append({
-                        "user_email": user.email,
-                        "journal_name": "",
-                        "trades_count": 0,
-                        "reason": "No journals found"
-                    })
-                    continue
+                entries = JournalEntry.query.filter_by(
+                    user_id=row.user_id,
+                    profile_id=row.profile_id
+                ).order_by(JournalEntry.date.asc()).all()
 
-                for profile in profiles:
-                    entries = JournalEntry.query.filter_by(
-                        user_id=user.id,
-                        profile_id=profile.id
-                    ).order_by(JournalEntry.date.asc()).all()
-                    trade_count = len(entries)
+                xlsx_bytes = create_journal_xlsx_bytes(entries)
+                email_part = _safe_filename_part(user.email.split('@')[0], 'user')
+                journal_part = _safe_filename_part(profile.name, 'journal')
+                base_name = f"{email_part}_{journal_part}_trading_journal_complete.xlsx"
+                filename = base_name
+                counter = 1
+                while filename in used_filenames:
+                    filename = f"{email_part}_{journal_part}_{counter}_trading_journal_complete.xlsx"
+                    counter += 1
+                used_filenames.add(filename)
 
-                    if trade_count <= min_trades:
-                        skipped_items.append({
-                            "user_email": user.email,
-                            "journal_name": profile.name,
-                            "trades_count": trade_count,
-                            "reason": f"Only {trade_count} trades (requires more than {min_trades})"
-                        })
-                        continue
+                zf.writestr(filename, xlsx_bytes)
+                exported_files.append({
+                    "filename": filename,
+                    "user_email": user.email,
+                    "journal_name": profile.name,
+                    "trades_count": row.trade_count
+                })
 
-                    xlsx_bytes = create_journal_xlsx_bytes(entries)
-                    email_part = _safe_filename_part(user.email.split('@')[0], 'user')
-                    journal_part = _safe_filename_part(profile.name, 'journal')
-                    base_name = f"{email_part}_{journal_part}_trading_journal_complete.xlsx"
-                    filename = base_name
-                    counter = 1
-                    while filename in used_filenames:
-                        filename = f"{email_part}_{journal_part}_{counter}_trading_journal_complete.xlsx"
-                        counter += 1
-                    used_filenames.add(filename)
-
-                    zf.writestr(filename, xlsx_bytes)
-                    exported_files.append({
-                        "filename": filename,
-                        "user_email": user.email,
-                        "journal_name": profile.name,
-                        "trades_count": trade_count
-                    })
-
-            summary_lines = ["status,user_email,journal_name,trades_count,filename,reason"]
+            summary_lines = ["status,user_email,journal_name,trades_count,filename"]
             for item in exported_files:
                 summary_lines.append(
-                    f"exported,{item['user_email']},{item['journal_name']},{item['trades_count']},{item['filename']},"
-                )
-            for item in skipped_items:
-                summary_lines.append(
-                    f"skipped,{item.get('user_email', '')},{item.get('journal_name', '')},"
-                    f"{item.get('trades_count', 0)},,\"{item.get('reason', '')}\""
+                    f"exported,{item['user_email']},{item['journal_name']},"
+                    f"{item['trades_count']},{item['filename']}"
                 )
             zf.writestr('_export_summary.csv', '\n'.join(summary_lines))
-
-        if not exported_files:
-            return jsonify({
-                "error": f"No journals with more than {min_trades} trades found for selected users",
-                "skipped": skipped_items
-            }), 400
 
         zip_buffer.seek(0)
 
         log_admin_action(
             "EXPORT_USER_JOURNALS",
-            f"Exported {len(exported_files)} journal files (min_trades>{min_trades}), skipped {len(skipped_items)}"
+            f"Exported {len(exported_files)} journal files (min_trades>{min_trades}) for {len(qual_user_ids)} users"
         )
 
         return send_file(
@@ -982,8 +973,8 @@ def export_user_journals():
         )
 
     except Exception as e:
-        current_app.logger.error(f"Error exporting user journals: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        current_app.logger.error(f"Error exporting user journals: {e}", exc_info=True)
+        return jsonify({"error": f"Export failed: {str(e)}"}), 500
 
 # Enhanced dashboard endpoint with more comprehensive data
 @admin_bp.route('/dashboard/enhanced', methods=['GET'])

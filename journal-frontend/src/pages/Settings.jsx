@@ -1091,21 +1091,24 @@ export default function Settings() {
       return;
     }
 
-    const eligibleCount = getSelectedEligibleJournalUsers().length;
-    if (eligibleCount === 0) {
+    const eligibleUsers = getSelectedEligibleJournalUsers();
+    const eligibleUserIds = eligibleUsers.map(u => u.id);
+    if (eligibleUserIds.length === 0) {
       setMsg(`None of the selected users have more than ${MIN_TRADES_FOR_JOURNAL_EXPORT} trades.`);
       return;
     }
 
-    const skippedCount = selectedUsers.length - eligibleCount;
+    const skippedCount = selectedUsers.length - eligibleUserIds.length;
     const confirmMessage = skippedCount > 0
-      ? `Download a ZIP with separate journal files for ${eligibleCount} user(s)?\n\nEach journal with more than ${MIN_TRADES_FOR_JOURNAL_EXPORT} trades gets its own trading_journal_complete.xlsx file (same as Export All Data).\n\n${skippedCount} selected user(s) have no qualifying journals and will be skipped.`
-      : `Download a ZIP with separate journal files?\n\nEach journal with more than ${MIN_TRADES_FOR_JOURNAL_EXPORT} trades gets its own trading_journal_complete.xlsx file (same as Export All Data).`;
+      ? `Download a ZIP with separate journal files for ${eligibleUserIds.length} user(s)?\n\nEach journal with more than ${MIN_TRADES_FOR_JOURNAL_EXPORT} trades gets its own trading_journal_complete.xlsx file.\n\n${skippedCount} selected user(s) will be skipped (not enough trades).`
+      : `Download a ZIP with separate journal files for ${eligibleUserIds.length} user(s)?\n\nEach journal with more than ${MIN_TRADES_FOR_JOURNAL_EXPORT} trades gets its own trading_journal_complete.xlsx file.`;
 
     if (!window.confirm(confirmMessage)) return;
 
+    const wasAutoRefresh = autoRefresh;
+    setAutoRefresh(false);
     setDownloadingJournals(true);
-    setMsg('');
+    setMsg('Preparing download... auto-refresh paused. Please wait, this may take a minute.');
 
     try {
       const token = localStorage.getItem('token');
@@ -1116,14 +1119,14 @@ export default function Settings() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          user_ids: selectedUsers,
+          user_ids: eligibleUserIds,
           min_trades: MIN_TRADES_FOR_JOURNAL_EXPORT
         })
       });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to download journals');
+        throw new Error(errorData.error || `Failed to download journals (${res.status})`);
       }
 
       const blob = await res.blob();
@@ -1140,11 +1143,14 @@ export default function Settings() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      setMsg(`Successfully downloaded ${eligibleCount} user journal export(s) as a ZIP!`);
+      setMsg(`Successfully downloaded journal files for ${eligibleUserIds.length} user(s) as a ZIP!`);
     } catch (err) {
       setMsg(err.message || 'Error downloading journals');
     } finally {
       setDownloadingJournals(false);
+      if (wasAutoRefresh) {
+        setAutoRefresh(true);
+      }
     }
   };
 
@@ -1366,9 +1372,9 @@ export default function Settings() {
     }
   }, [isAdmin]);
 
-  // Auto-refresh functionality
+  // Auto-refresh functionality (paused while downloading journals)
   useEffect(() => {
-    if (!isAdmin || !autoRefresh) return;
+    if (!isAdmin || !autoRefresh || downloadingJournals) return;
 
     const refreshData = async () => {
       if (activeAdminTab === 'dashboard') {
@@ -1413,7 +1419,7 @@ export default function Settings() {
     const interval = setInterval(refreshData, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [isAdmin, autoRefresh, activeAdminTab, refreshInterval]);
+  }, [isAdmin, autoRefresh, activeAdminTab, refreshInterval, downloadingJournals]);
 
   // Email count function
   const handleEmailCount = async (prefix = null) => {
@@ -1506,13 +1512,16 @@ export default function Settings() {
               </div>
               <button
                 onClick={() => setAutoRefresh(!autoRefresh)}
+                disabled={downloadingJournals}
                 className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                  autoRefresh 
-                    ? 'bg-blue-500/20 text-blue-400' 
+                  downloadingJournals
+                    ? 'bg-amber-500/20 text-amber-400 cursor-not-allowed'
+                    : autoRefresh
+                    ? 'bg-blue-500/20 text-blue-400'
                     : 'bg-[#1e3a5f] text-gray-400 hover:text-white'
                 }`}
               >
-                {autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
+                {downloadingJournals ? 'Download in progress...' : autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
               </button>
             </div>
 
@@ -2001,6 +2010,11 @@ export default function Settings() {
                     </div>
 
                     {/* Selection toolbar */}
+                    {downloadingJournals && (
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-300">
+                        Download in progress — auto-refresh is paused. Please wait and do not close this page.
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-center gap-2 p-3 bg-[#1e3a5f] border border-[#2d4a6f] rounded-lg">
                       <span className="text-sm text-gray-300">
                         {selectedUsers.length} selected
