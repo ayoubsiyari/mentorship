@@ -118,6 +118,125 @@ const EMAIL_TEMPLATES = [
 </html>`
   },
   {
+    id: 'mentorship-welcome-discord',
+    name: '🌟 Mentorship Welcome + Discord (Arabic)',
+    subject: 'مرحباً بك في برنامج التوجيه',
+    content: `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مرحباً بك في البرنامج</title>
+</head>
+<body style="margin:0; padding:0; background-color:#eef0f5; font-family: 'Segoe UI', Tahoma, Arial, sans-serif;">
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#eef0f5; padding:40px 0;">
+    <tr>
+      <td align="center">
+
+        <table role="presentation" width="580" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:18px; overflow:hidden; box-shadow:0 8px 30px rgba(30,20,80,0.12); max-width:580px; width:100%;">
+
+          <!-- Top accent bar -->
+          <tr>
+            <td style="height:6px; background:linear-gradient(90deg,#7C3AED,#2563EB,#06B6D4);"></td>
+          </tr>
+
+          <!-- Logo area -->
+          <tr>
+            <td style="padding:32px 40px 10px; text-align:center;">
+              <img src="https://talaria-log.com/logo-08.png" alt="Talaria" width="100" style="display:block; margin:0 auto; max-width:100px;">
+            </td>
+          </tr>
+
+          <!-- Header -->
+          <tr>
+            <td style="padding:14px 40px 28px; text-align:center;">
+              <h1 style="margin:0; font-size:24px; color:#1e1b3a; font-weight:700;">أهلاً بك معنا</h1>
+              <p style="margin:8px 0 0; font-size:14px; color:#8a86a8;">بداية رحلتك في برنامج التوجيه</p>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr><td style="padding:0 40px;"><div style="height:1px; background-color:#eeecf7;"></div></td></tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:30px 40px 10px; text-align:right;">
+              <p style="font-size:16px; color:#3a3660; line-height:1.9; margin:0 0 18px;">
+                مرحباً بك،
+              </p>
+              <p style="font-size:16px; color:#3a3660; line-height:1.9; margin:0 0 18px;">
+                يسعدنا جداً انضمامك إلى برنامج التوجيه الخاص بنا. خطوتك القادمة هي الانضمام إلى مجتمعنا على ديسكورد، حيث تبدأ فعلياً رحلة التعلّم والتواصل مع فريق التوجيه وباقي المشاركين.
+              </p>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding:10px 40px 30px; text-align:center;">
+              <a href="[DISCORD_INVITE_LINK]" style="background:linear-gradient(90deg,#5865F2,#4752C4); color:#ffffff; text-decoration:none; font-size:16px; font-weight:700; padding:15px 46px; border-radius:50px; display:inline-block; box-shadow:0 6px 16px rgba(88,101,242,0.35);">
+                انضم إلى سيرفر ديسكورد
+              </a>
+            </td>
+          </tr>
+
+          <!-- Info cards -->
+          <tr>
+            <td style="padding:0 40px 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background-color:#FFF4E5; border-radius:12px; padding:16px 20px; text-align:right; border-right:3px solid #E8A33D;">
+                    <span style="font-size:14.5px; color:#7a4b00; line-height:1.8;">
+                      <strong>الرابط صالح لمدة 24 ساعة فقط</strong> من وصول هذه الرسالة، لذا يُرجى الانضمام في أقرب وقت ممكن قبل انتهاء صلاحيته.
+                    </span>
+                  </td>
+                </tr>
+                <tr><td style="height:10px;"></td></tr>
+                <tr>
+                  <td style="background-color:#FDEDED; border-radius:12px; padding:16px 20px; text-align:right; border-right:3px solid #C64B4B;">
+                    <span style="font-size:14.5px; color:#8a1f1f; line-height:1.8;">
+                      <strong>هذا الرابط شخصي وخاص بك فقط</strong> ويُستخدم لمرة واحدة، لذا يُرجى عدم مشاركته مع أي شخص آخر لضمان أمان السيرفر.
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Closing -->
+          <tr>
+            <td style="padding:28px 40px 6px; text-align:right;">
+              <p style="font-size:14.5px; color:#5c5885; line-height:1.8; margin:0 0 18px;">
+                إذا واجهت أي مشكلة أو انتهت صلاحية الرابط قبل استخدامه، يُرجى التواصل معنا وسنرسل لك رابطاً جديداً على الفور.
+              </p>
+              <p style="font-size:16px; color:#3a3660; line-height:1.8; margin:0 0 22px;">
+                بالتوفيق في رحلتك معنا، ونراك في السيرفر.
+              </p>
+              <p style="font-size:15px; color:#3a3660; margin:0;">مع أطيب التحيات،</p>
+              <p style="font-size:15px; color:#5865F2; font-weight:700; margin:3px 0 0;">فريق Talaria</p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:26px 40px 30px;">
+              <div style="height:1px; background-color:#eeecf7; margin-bottom:18px;"></div>
+              <p style="font-size:11.5px; color:#a8a5c4; margin:0; text-align:center; line-height:1.7;">
+                هذه رسالة من فريق برنامج التوجيه · إذا وصلتك عن طريق الخطأ يرجى تجاهلها
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>`
+  },
+  {
     id: 'payment-confirmation',
     name: '✅ Payment Confirmation (Arabic)',
     subject: 'تم استلام رسوم اشتراكك بنجاح',
